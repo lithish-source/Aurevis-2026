@@ -1,0 +1,51 @@
+{
+  "success": true,
+  "query": "Chennai One app mobile screenshot public transport journey planner",
+  "count": 6,
+  "ranked": false,
+  "captioned_count": 0,
+  "results": [
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/128aa7a88679.png",
+      "caption": "",
+      "source": "Reddit",
+      "original_width": "1080px",
+      "original_height": "2400px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/99a6721ad91f.jpeg",
+      "caption": "",
+      "source": "The Hindu",
+      "original_width": "1200px",
+      "original_height": "2490px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/d23beaf38d06.png",
+      "caption": "",
+      "source": "Reddit",
+      "original_width": "1080px",
+      "original_height": "2256px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/fc3bd98dfeef.png",
+      "caption": "",
+      "source": "Tech Leads IT",
+      "original_width": "1920px",
+      "original_height": "1080px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/b2c11f68f789.png",
+      "caption": "",
+      "source": "AllBlogs",
+      "original_width": "1536px",
+      "original_height": "1024px"
+    },
+    {
+      "original_url": "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/4a07de1d9b1e.jpg",
+      "caption": "",
+      "source": "zingbus",
+      "original_width": "2065px",
+      "original_height": "1007px"
+    }
+  ]
+}

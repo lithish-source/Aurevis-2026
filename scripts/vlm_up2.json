@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "This is a screenshot of the **Chalo** (or similar) public transit app home screen on an Android phone, taken at **3:48**.\n\n## Top area — Map\n- A **Google Maps** view (the grey \"Google\" watermark logo is visible bottom-left of the map) rendered in a **pale pastel style** — light teal/cyan background with white roads and mint-green park areas. Street labels include \"Thirumalai Street,\" \"Bharathi Salai,\" and \"SRM Easwari Engineering College\" (with some Tamil text visible).\n- A **blue circular pedestrian/walking icon marker** with a teardrop pointer sits at the top center, indicating the user's location mode.\n- Status bar shows: \"Of ...stel\" (partial carrier name, likely \"Jio...Fidel\" style), notification icons (an orange square, purple \"Z\", blue and yellow app icons), a camera cutout, 0.60 KB/s, 4G, Wi-Fi, and **57% battery**.\n\n## Location banner\nBelow the map, on a light teal illustrated background with cartoon bushes:\n- \"**You are in ↗ Ramapuram.**\" (underlined link)\n- \"**No buses available around you.**\"\n\n## Search bar\nA prominent rounded pill button with a **pink-to-red/orange gradient**: \"**Search \"Bus Stops\"**\" with a magnifying-glass icon on the right.\n\n## Mode selector\nA horizontally scrolling row of white rounded cards, each with a 3D vehicle illustration and label:\n- **Bus** (white bus), **Metro** (white train), **Train** (tram), **Auto** (green/yellow auto-rickshaw), and a partially visible fifth card (brown bus/tram).\n\n## Promo banner (yellow card)\n- Huge \"**₹1**\" numeral.\n- \"**₹1 Rupee Ticket**\" and \"**⚡ 1-Click Booking**\"\n- \"**Powered by CUMTA**\" (underlined logo-style text)\n- A phone mockup illustration on the right showing a \"CUMTA UPI Powered by Chalo\" card (₹1) with a blue \"**GET TICKET**\" button.\n- Carousel dots below (2nd dot active).\n\n## Track your buses section\n- Heading \"**Track your buses**\"\n- \"**Nearby Stop:**\" with link \"**Ramapuram Srm University**\"\n- A blue pill button \"**Show all ›**\"\n- A white card: \"**Towards RAMAPURAM**\", route badge \"**S26**\" (red text on cream), \"**To Valasaravakkam**\", a live-tracking icon with \"**15 MIN**\" in green monospace text, and a partially visible second \"S26\" entry with \"EXP SCHEDULED\" tags.\n\n## Bottom navigation\nFloating white pill bar with 5 items:\n- **Home** (red-orange ticket-like logo icon, active)\n- **Tickets** (ticket icon)\n- **BUS TICKET** — a large raised **blue/purple gradient circular center button** with an icon\n- **Pass** (arch/card icon)\n- **Account** (person icon)\n\nNo sign-in prompt or account details are visible; no database info is shown — this is a standard logged-in (or guest) home screen for browsing nearby transit.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793904583,
+  "id": "20261106024930a7b2b6767c6440b9",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "20261106024930a7b2b6767c6440b9",
+  "usage": {
+    "completion_tokens": 699,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1566,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 2265
+  }
+}

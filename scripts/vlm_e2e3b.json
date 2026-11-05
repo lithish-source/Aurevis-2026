@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "# Transit App Map View Description\n\n## Street Map Rendering\n✅ **Yes, the map renders correctly with real road and area names** — no watermark text is visible. Legible labels include:\n- **Roads:** Arcot Road, 1st Main Road, Poothapedu Road, Mount–Poonamallee Road, Krishnam Street, Amman... Street, Jermah... Street\n- **Areas:** Chowdhary Nagar, Ward 152, Ward 153, \"…arathi Salai\" (Bharathi Salai), Sri Devi Kuppan Main Road\n- The road network, green park areas, and water bodies all render properly.\n\n## Pins Visible\n1. **Blue user-location pin** (center) with a navigation/location arrow icon and a small blue dot beneath it\n2. **Dark maroon/black square bus stop pin** with a bus icon and a small blue dot to its upper right\n3. **Small black dots** scattered across the map (likely additional unstyled stop markers or transit points)\n\n## Green Chip with Stop Counts\n✅ **Yes** — top-left chip showing:\n> 🟢 **8 bus • 6 metro • 4 rail**\n\n## Filter Toggles (all ON, blue)\n- Bus Stops\n- Metro Stns\n- Railway Stns\n\n## Other UI Elements\n- Close (X) button, top-right\n- Recenter/location button, right side\n- Bottom sheet: **\"You are in ↗ Ramapuram.\"** / \"No buses available around you.\"\n- Orange-pink gradient search bar: **Search \"Bus, Metro, Train\"**\n- Vehicle category carousel (bus icons)\n- Bottom nav: Home (active), Tickets, **Bus Ticket** (center FAB), Pass, Account\n\n## Visual Problems\n1. **Bottom sheet clips the category cards** — card labels (\"Bus\", \"Au...\") are cut off by the bottom nav bar; text is unreadable.\n2. **Contradiction:** the green chip says stops exist nearby, but the sheet says \"No buses available around you.\"\n3. **Pins overlap UI** — the location pin partially overlaps the small black dot markers, and pins lack labels/tooltips.\n4. **Small black dots have no icon styling**, looking inconsistent with the styled bus pin (possibly failed marker renders).\n5. **Map labels truncated** at edges (e.g., \"…arathi Salai\", \"Mount–Poonamallee R…\").\n6. A **blue rounded rectangle** peeks out below the bottom nav, suggesting a hidden/overflowing element.\n7. The **green chip slightly overlaps the map area/text** near the notch zone, and \"Dev…\" label top-left is cut off.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793905796,
+  "id": "202611060309467cc148fd581148bc",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "202611060309467cc148fd581148bc",
+  "usage": {
+    "completion_tokens": 573,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1705,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 2278
+  }
+}

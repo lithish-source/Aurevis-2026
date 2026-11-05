@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Based on the screenshot:\n\n**1) Map:** Yes, a full-screen map is visible. It shows roads (white lines with labels like \"ARCOT RD\", \"INNER RING RD\", \"MOUNT MALL...\", \"KUR R LAKE\"), a light blue lake area on the left (\"...UR LAKE\"), green park blobs, and area labels like KOYAMBEDU, VADAPALANI, and MANAPAKK. Map style is a light/cream tone.\n\n**2) Pins:** Yes, all present:\n- **Bus stop pins:** dark maroon/black pins with bus icons (several near center)\n- **Metro pins:** dark square badges with a white \"M\" (Koyambedu, Vadapalani, and several on the right side)\n- **Railway pins:** green/teal square badges with train icons (right side and upper area)\n- **User location:** blue dot with a white walking-person icon and pulsing light-blue circle in the center\n\n**3) Floating controls:**\n- Top-left toggle pills: \"Bus Stops\" (ON, blue), \"Metro Stns\" (ON), \"Railway Stns\" (ON) — each with a switch\n- Top-right circular white close \"X\" button\n- Bottom-right circular white locate button (crosshair icon)\n- A small \"N\" compass badge at the very bottom-left corner\n\n**4) Bottom sheet:** Yes — a white rounded bottom sheet contains:\n- \"You are in ↗ **Ramapuram**.\" with \"No buses available around you.\"\n- A pink-to-orange gradient search bar: Search \"Bus, Metro, Train\" with a magnifier icon\n- Below: icon tiles (bus, train illustrations) and a white pill nav bar with Home (active, red), Tickets, Bus Ticket (elevated blue circular button), Pass, Account\n\n**5) Glitches/overlaps:**\n- Text labels are cut off at screen edges (\"KUR R LAKE\", \"ARCOR RD\", \"MOUNT MALL\", \"MANAPAKK\") — clipping rather than broken\n- The highlighted blue \"Train\" chip inside the search bar looks like a slightly odd overlay\n- The \"N\" compass badge slightly overlaps the bottom nav area/edge of the sheet\n- The central user pin slightly overlaps two bus stop pins — minor crowding, but nothing looks functionally broken",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793877009,
+  "id": "20261105190953e5424b03f0b54cb5",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "20261105190953e5424b03f0b54cb5",
+  "usage": {
+    "completion_tokens": 502,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 618,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 1120
+  }
+}

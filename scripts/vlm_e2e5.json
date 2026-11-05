@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "**Account Screen Description**\n\nYes, the user is signed in. The profile card shows **Aravind Raman** with a red circular initials avatar reading \"AR\", phone number **+91 9840711223**, a \"✓ Verified · Chennai One ID\" badge, and an edit pencil button.\n\nThe header reads **\"Account — Your Chennai One profile & services\"** with a blue circular logo in the top-right corner (a triangle logo is visible inside that blue badge, top-right of the screen).\n\n**Quick service tiles (2x2 grid):**\n- City Services — GCC bills & certificates\n- Explore Che… — Heritage, parks & more\n- Live Tracking — Buses & metro in real time\n- Safety — SOS & trusted contacts\n\n**Stats row:** 0 Trips · ₹0 Spent · 1 kg CO₂ saved\n\n**Data & Sync section:**\n- **Local database** — \"1 users · 1 tickets · 1 passes · 2 events\" with a green status dot (active)\n- **Supabase mirror** — \"Not configured — add SUPABASE_URL & S…\" with a gray dot (inactive)\n\n**Recent Writes** list shows skipped events at 7:06 pm: analytics events (×2), sos events, pass purchases.\n\n**Bottom nav:** Home, Tickets, a prominent center \"BUS TICKET\" button (blue circle), Pass, and Account (currently active, in red).",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793905842,
+  "id": "20261106031036f4390cf0d2dc49c6",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "20261106031036f4390cf0d2dc49c6",
+  "usage": {
+    "completion_tokens": 304,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1717,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 2021
+  }
+}

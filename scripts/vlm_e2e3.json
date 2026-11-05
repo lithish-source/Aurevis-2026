@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "This is a phone-frame mockup of a transit app map screen. Here's what I observe:\n\n**Map type: Not a real street map**\n- The map background is essentially blank/off-white with no roads, street names, or geographic detail.\n- Instead, it's littered with diagonal watermark text reading **\"API KEY REQUIRED — carto.com/basemaps/apikey\"**, indicating the basemap tiles failed to load because no valid map API key was configured. So the \"map\" is effectively a placeholder/error state, not an illustration either.\n\n**Map pins**\n- Yes, there are a few pins/markers:\n  - A large **blue location pin** near the center (user/current location marker with a small icon).\n  - A **dark red/brown bus-stop pin** with a bus icon, with a small blue notification dot on it.\n- There are **no metro \"M\" markers** or rail markers visible, despite the toggles for Metro Stns and Railway Stns being enabled.\n\n**Top controls**\n- A chip showing \"8 bus · 6 metro · 4 rail\" with a green live dot.\n- Filter toggles: **Bus Stops, Metro Stns, Railway Stns** (all switched on), plus a close (×) button.\n- A locate/crosshair button sits above the bottom sheet.\n\n**Bottom sheet**\n- Yes — a white bottom sheet with a drag handle, text **\"You are in ↗ Ramapuram.\"** and \"No buses available around you.\"\n- A prominent **pink-to-orange gradient search bar** (\"Search 'Bus, Metro, Train'\").\n- A row of vehicle category cards (Bus, etc.) that is **cut off/overlapped** by the bottom navigation bar (Home, Tickets, a raised \"BUS TICKET\" button, Pass, Account).\n\n**Issues present**\n1. **Missing map tiles** — the API key watermark appears multiple times across the canvas.\n2. **Large blank areas** — no actual map content.\n3. **Overlapping UI** — the vehicle category cards are clipped behind the nav bar and the bottom sheet edge (a yellow element peeks out at the very bottom).\n4. **Inconsistency** — the top chip claims \"8 bus · 6 metro · 4 rail\" and filters are on, but no metro/rail markers render, and the sheet says \"No buses available around you\" — contradicting the chip and the one visible bus pin.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793905681,
+  "id": "20261106030748e95c95a33c084b9a",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "20261106030748e95c95a33c084b9a",
+  "usage": {
+    "completion_tokens": 512,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1725,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 2237
+  }
+}

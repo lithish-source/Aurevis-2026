@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "# Chennai Metro Rail App — Travel Planner Screen\n\n## 1) Status Bar & Header\n- **Status bar:** Medium blue (#3D6BB3-ish), white icons/text: \"10:41\", WhatsApp/Mail/keyboard icons, right: Bluetooth, \"LTE\", signal, battery \"81%\"\n- **App bar:** Same blue (#3B67AF), left hamburger menu (3 white lines), white circular CMRL logo, white bold text **\"CHENNAI METRO RAIL LIMITED\"**\n\n## 2) Sections (top → bottom)\n\n### Sub-header\n- Light lavender/blue bar (#DDE3F5) with circular light-blue back button (chevron-left) and label **\"Travel Planner\"** in blue (#3B67AF)\n\n### Route Inputs\n- Left rail: green filled circle (origin dot), dotted gray line, red map-pin (destination)\n- Two white dropdown inputs with thin gray borders, dark gray placeholder text, black dropdown caret:\n  - **\"Meenambakkam\"**\n  - **\"Government Estate\"**\n\n### Select Date & Time\n- Section title **\"Select Date & Time\"** in dark navy\n- Two pill-shaped inputs, very light blue fill (#E4EEF3):\n  - Calendar icon + **\"08/09/2025\"**\n  - Clock icon + **\"05:00\"**\n\n### Journey Summary (3-column grid, thin gray dividers, white bg)\n- **Left:** navy train-ticket icon, label \"Ticket Fare\", value **\"₹ 40\"** (large navy)\n- **Middle (two stacked cells):**\n  - \"Station In Between\" — crimson/red metro-train icon + big red number **\"10\"**\n  - \"Travel Time\" — olive/yellow train-clock icon + big olive number **\"29\"**, \"Min\" suffix\n- **Right:** blue location-pin route icons (dashed path), \"Total Distance\", big cyan-blue **\"14.72\"**, suffix **\"Kms\"**\n\n### Upcoming Train Details\n- Title **\"Upcoming Train Details\"** in navy\n- Full-width blue banner (#4A73B8): white sun icon + **\"04:53\"** (left), white crescent-moon icon + **\"23:10\"** (right)\n- Four dark indigo-blue circular badges (#3B4FA0), white text, time over divider over code:\n  - **\"05:00 / P2\"**, **\"05:04 / P2\"**, **\"05:07 / P2\"**, **\"05:14 / P2\"**\n- Speech-bubble tooltip (light blue-gray fill, tail pointing to first circle): **\"This is a direct train\"**\n\n### Route Information (bottom)\n- Light gray card with left navy accent bar, label **\"Route Information\"** (blue), minus (collapse) icon on right\n\n## 3) Bottom Navigation\n- No bottom nav bar — only the Android gesture bar (gray pill on white)\n\n## 4) Exact Text Labels\n\"10:41\", \"LTE\", \"81%\", \"CHENNAI METRO RAIL LIMITED\", \"Travel Planner\", \"Meenambakkam\", \"Government Estate\", \"Select Date & Time\", \"08/09/2025\", \"05:00\", \"Station In Between\", \"10\", \"Ticket Fare\", \"₹ 40\", \"Travel Time\", \"29\", \"Min\", \"Total Distance\", \"14.72\", \"Kms\", \"Upcoming Train Details\", \"04:53\", \"23:10\", \"05:00\", \"05:04\", \"05:07\", \"05:14\", \"P2\" ×4, \"This is a direct train\", \"Route Information\"\n\n## 5) Color Palette\n| Color | Hex (approx) | Use |\n|---|---|---|\n| Royal blue | #3B67AF | Header, status bar, banner |\n| Light lavender | #DDE3F5 | Sub-header bar |\n| Indigo | #3B4FA0 | Time circles |\n| Navy | #2E4057 | Headings, fare value |\n| Crimson red | #C03A50 | Stations count, origin pin |\n| Olive/yellow | #A8A32A | Travel time |\n| Cyan blue | #2196C9 | Distance, route pins |\n| Light blue-gray | #E4EEF3 | Pills, tooltip |\n| Green | #1E7A1E | Origin dot |\n| White/gray | #FFFFFF / #F5F5F5 | Backgrounds, cards |\n\nFont: sans-serif (Roboto-like), navy headings; large bold numerals for stats.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793869752,
+  "id": "202611051708435e9045cf530a4f91",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "202611051708435e9045cf530a4f91",
+  "usage": {
+    "completion_tokens": 999,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 3435,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 4434
+  }
+}

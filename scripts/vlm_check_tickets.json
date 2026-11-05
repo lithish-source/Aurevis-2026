@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "This is a **My Tickets** screen (a tickets screen, not a metro booking screen), though it displays an active metro QR ticket.\n\n**Title:** \"My Tickets\" with the subtitle \"One QR for bus & metro travel\" and a \"Scan & Book\" button.\n\n**Main elements visible:**\n- Tabs: \"Active Ticket\" (selected) and \"History\"\n- An active ticket card labeled \"CHENNAI METRO · QR TICKET\" with a \"VALID\" badge\n- Route: Government Estate → Meenambakkam\n- Details: 1 passenger · ₹40 · Valid till Today, 9:45 PM\n- A large QR code with ticket ID \"MTX-8821-4402\" and note \"Issued 3:47 PM · Show at the gate scanner\"\n- A \"Quick book\" section with shortcuts: Bus, Metro (center), and Passes\n- Bottom navigation: Home, Tickets (active), a central \"Bus Ticket\" button, Pass, Account",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793877399,
+  "id": "202611051916351ebb816d956b4bc1",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "202611051916351ebb816d956b4bc1",
+  "usage": {
+    "completion_tokens": 213,
+    "completion_tokens_details": {
+      "reasoning_tokens": 212
+    },
+    "prompt_tokens": 538,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 751
+  }
+}

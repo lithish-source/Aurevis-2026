@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "# My Tickets Screen Overview\n\n## QR Ticket Card\n- **Header (dark blue banner):** \"CHENNAI METRO · QR TICKET\" with a green \"VALID\" badge.\n- **Route:** **Government Estate → Meenambakkam**\n- **Details:** 1 passenger · ₹40 · Issued 7:11 pm\n- **Body:** Large QR code inside a rounded blue-bordered frame.\n- **Reference number:** **MTX-3383-6858**\n- **Footer text:** \"Valid for 60 minutes · Show at the gate scanner\"\n\n## Saved-Location Badge\nYes — a yellow/amber pill below the reference number with a checkmark reading **\"✓ Saved to local database\"** (no cloud-sync indicator shown).\n\n## Other Elements\n- Header: \"My Tickets\" with subtitle \"One QR for bus & metro travel\" and a blue \"Scan & Book\" button.\n- Tabs: \"Active Ticket\" (selected) and \"History · 1\".\n- \"Quick book\" section with three shortcut tiles, partially obscured.\n- Bottom nav: Home, Tickets (active), Bus Ticket (center FAB), Pass, Account.\n\n## Errors / Visual Problems\n1. **\"My Tickets\" title overlaps the status bar** — it collides with the 4:35 clock and the notch pill.\n2. **Quick book tiles are cut off** — the bottom nav bar and FAB cover the labels/icons of the three shortcut cards.\n3. **Truncated tip banner** — the yellow tip text (\"Tip: Scan the QR sticker inside MTC buses to buy...\") is clipped at the very bottom of the screen.\n4. Minor: the QR code's quiet zone looks tight against its border, but that's cosmetic.\n\nNo functional error messages are displayed — the ticket shows as valid and saved.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793905922,
+  "id": "20261106031156b411f9f0c4ae4d75",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "20261106031156b411f9f0c4ae4d75",
+  "usage": {
+    "completion_tokens": 384,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1706,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 2090
+  }
+}

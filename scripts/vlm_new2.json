@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "# UI Description: Transit App (ChMetro/Bus App) — Pixel-Perfect Clone\n\n## 1) Sections Top to Bottom\n\n### A. Status Bar (top, over map)\n- Left: time **\"3:49\"** (bold, white-ish with slight shadow), followed by app notification icons: an orange/white location icon, **Z** (Zomato, red), blue phone icon, blue icon, orange/green duo icon, and a white wrench/tool icon.\n- Right: alarm clock icon, phone icon, **\"3.60 KB/s\"** with up/down arrows, **\"4G\"**, signal bars, Wi‑Fi icon, battery pill (mostly empty), **\"56%\"**.\n\n### B. Map Controls (floating over map)\n- **Top-left:** dark charcoal/black rounded pill (~radius 40px, ~48px tall) containing white bold text **\"Stops\"** + iOS-style toggle switch (blue #1A73E8 track, white knob on the right/on state).\n- **Top-right:** white circular FAB (~52px) with black **\"✕\"** close icon.\n- **Bottom-right (above sheet):** white circular FAB (~52px) with black **my-location / crosshair** icon.\n\n### C. Map Area (full background)\n- Google Maps light-style map. Road network in pale gray/white; major roads slightly darker gray with names:\n  - Horizontal major road: **\"Bharathi Salai\"** (repeated label on right side), **\"Ganghaa Chowk\"** (left).\n  - Vertical road: **\"Anandam Nagar Main Rd\"** (rotated ~-75°).\n  - Diagonal streets: **\"Bajanai Kovil St\"**, **\"Bajanai Kovil S\"**, **\"2nd Main St\"**, **\"Kannappan St\"**, **\"Sian St\"**, **\"5th Cross St\"**, **\"6th St\"**, **\"1st St\"** (×2), **\"8th Ave\"**, **\"Anna St\"** (rotated), **\"Natarajan Salai\"** (vertical, ×2).\n  - Partially cut labels top-left: \"…th St\", \"…6th St\", \"…ross…\"; left edge: \"…anghaa\", \"…i Square\".\n- Green park polygons (~#A8DFA5) and a cyan water body (~#7FD0E8) at mid-right.\n- **\"Google\"** watermark bottom-left in gray outline text.\n\n### D. Map Pins / Transit Markers\n- **Center:** large blue circular walking pin (#0B67C4 / #1666C7) with white **walking person** icon, drop tail, and small blue dot beneath.\n- **Left-of-center:** maroon/dark-plum (#4A1229) rounded-square bus stop marker (~56px) with white **bus front** icon and drop tail; a smaller faded/duplicate gray-mauve bus marker sits behind it.\n- **Right:** faded gray-mauve bus stop marker (~#9B8A93).\n- Two tiny dark dots on the road (live vehicle dots).\n\n### E. Bottom Sheet (white, rounded ~24px top corners, draggable handle)\n- Small gray drag handle bar centered at top (~48×5px, #C9C9C9).\n- **Line 1:** \"You are in ↗ **Ramapuram**.\" — black text, ~19px semibold; arrow icon ↗ before city name; \"Ramapuram\" bold with black underline.\n- **Line 2:** \"No buses available around you.\" — same size/weight, regular black.\n\n### F. Search Bar\n- Full-width pill (inset ~16px sides, height ~72px, fully rounded) with **pink→orange gradient**: left #D4008F → mid #E9445A → right #FF7A00.\n- Left: white text **“Search “B**” (typing placeholder/cursor), ~22px semibold.\n- Right: white **magnifying glass** icon (~28px).\n\n### G. Main Bottom Navigation (white pill card, rounded ~36px, floating)\nFive items:\n1. **Home** — red/orange stacked-tiles icon (#E8442E), bold red label (active).\n2. **Tickets** — gray (#8A8A8E) ticket/bookmark icon.\n3. **BUS TICKET** — elevated blue circle (gradient #4A6CF7→#3B4FE0, ~72px) with white bus icon + ticket icon, small white uppercase label \"BUS TICKET\" inside.\n4. **Pass** — gray card/pass icon.\n5. **Account** — gray person icon.\n\n### H. Peek Row (bottom, partially cut off — scrolled horizontally)\nSegmented category chips with labels and images (partially visible):\n- **Bus** (bus photo, dark), **Metro** (gray image tile, underlined — selected, black underline bar), **Train** (image tile), **Auto** (image tile), partial next item at far right edge.\n- Labels ~16px semibold black.\n\n## 2) Layout Structure\n- Full-screen map canvas; floating circular/pill controls overlaid.\n- Draggable bottom sheet (~38% height) containing status text, gradient search pill, nav pill, category chip row.\n- Google Maps default gestures: pinch zoom, pan; stops toggleable via \"Stops\" switch; location FAB re-centers.\n\n## 3) Color Palette\n- Map base: #F7F7F5; roads #FFFFFF/#E8E8E6; park #A8DFA5; water #7FD0E8\n- Stops pill: #262629 (black)\n- Toggle: #1A73E8 blue\n- Walk pin: #1666C7\n- Bus marker: #4A1229; faded markers: #9B8A93\n- Sheet/nav: #FFFFFF; text #111111; inactive gray #8A8A8E; handle #C9C9C9\n- Gradient: #D4008F → #E9445A → #FF7A00\n- Bus Ticket circle: #4A6CF7→#3B4FE0\n- Home icon/label: #E8442E\n\n## 4) Icons\n- Walking person (white), bus front (white), close ✕ (black), crosshair (black), search (white), tiles (red), ticket (gray), bus+ticket (white), pass card (gray), person (gray), ↗ arrow (black).\n\n## 5) Typography\n- Font: Google Sans / Roboto family.\n- \"Stops\": ~17px bold white.\n- Map labels: ~13–14px, #7B7B7B.\n- Sheet text: ~19px medium; bold for \"Ramapuram\".\n- Search text: ~22px semibold white.\n- Nav labels: ~13px semibold.\n- Chip labels: ~16px semibold black.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793876853,
+  "id": "202611051906528bde6f71ff6444cc",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "202611051906528bde6f71ff6444cc",
+  "usage": {
+    "completion_tokens": 1525,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1629,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 3154
+  }
+}

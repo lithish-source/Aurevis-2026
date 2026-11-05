@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "1) Title: \"Live Tracking\"\n2) Tabs: \"MTC Bus\" (selected) and \"Metro Rail\"\n3) Yes — a map with a blue dashed route line and a blue circular bus marker showing a bus icon; also a \"22 min\" ETA pill.\n4) Bus route rows:\n   - Card: 578 — CMBT → Sriperumbudur, via Chennai–Bengaluru Hwy, 42 km, \"7 buses live\" (this is a summary card, no ETA)\n   - 578 Deluxe — Sriperumbudur, On Time, ETA 22 min (4:35 PM), ₹35 · 7 stops · Moderate\n   - 21G Express — Tambar(a), Approaching, ETA 14 min (4:52 PM), ₹25 · 3 stops · High\n5) Visual defects: Route names are truncated with ellipses (\"CMBT → Sriper...\", \"Sriperumb...\", \"Tambar...\"), and the \"42 km\" text wraps awkwardly onto two lines. No major overlaps or blank regions otherwise.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793877145,
+  "id": "202611051912191ca9e954ba344f2d",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "202611051912191ca9e954ba344f2d",
+  "usage": {
+    "completion_tokens": 233,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 582,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 815
+  }
+}

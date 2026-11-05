@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Yes, this appears to be a splash/boot screen. A phone mockup displays a dark navy blue screen with a centered glowing blue rounded-square app icon containing a white **triangle** logo (with small dots beneath it, suggesting wheels/transit). Below the logo is the text \"CHENNAI ONE\" in bold white letters, with the subtitle \"BUS · METRO · TRAIN\" in lighter blue. At the bottom, small text reads \"An initiative of CUMTA · Govt. of Tamil Nadu.\"",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793905648,
+  "id": "20261106030724dd49102b411f4ca9",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "20261106030724dd49102b411f4ca9",
+  "usage": {
+    "completion_tokens": 106,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1694,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 1800
+  }
+}

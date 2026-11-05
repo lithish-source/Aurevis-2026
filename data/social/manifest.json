@@ -1,0 +1,22 @@
+{
+  "total": 131,
+  "byScenario": {
+    "monsoon-flood": 49,
+    "metro-disruption": 29,
+    "omr-incident": 27,
+    "poonamallee-chaos": 26
+  },
+  "byType": {
+    "flood": 38,
+    "other": 23,
+    "congestion": 21,
+    "transit_disruption": 31,
+    "road_closure": 2,
+    "infrastructure": 4,
+    "accident": 10,
+    "hazard": 2
+  },
+  "rumors": 10,
+  "noise": 23,
+  "generatedAt": "2026-11-05T21:01:35.318Z"
+}

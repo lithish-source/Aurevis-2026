@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "This is a **transit/ride-booking app screen** (looks like a mobility super-app, e.g. Tummoc or similar) showing a map view with a bottom sheet, on an Android device.\n\n## Overall Layout (top to bottom)\n1. **Status bar** (top): time \"3:49\", several app icons (a Zomato-style \"Z\", cloud, etc.), and on the right — alarm, do-not-disturb, phone, \"3.60 KB/s\" network speed, 4G, Wi-Fi, battery at **56%**.\n2. **Map area** fills most of the screen.\n3. **Bottom sheet** (white, rounded top, drag handle) with status text, a search bar, a bottom navigation bar, and a row of service tabs.\n\n## Map\n- **Style:** Light Google Maps style — pale gray/white streets on a near-white background, with light-blue waterways and a blue lake/pond on the right, and small green park patches. \"Google\" watermark bottom-left.\n- **Street/area labels:** \"5th Cross St\", \"Anna St\", \"Natarajan Salai\" (vertical, rotated), \"Bharathi Salai\" (twice), \"Gangaha Chowk\", \"…anghaa…j Square\", \"Anandam Nagar Main Rd\" (rotated), \"Bajanai Kovil St\" (twice), \"6th St\", \"2nd Main St\", \"1st St\" (twice), \"Kannappan St\", \"Star St\", \"8th Ave\".\n- **Markers:**\n  - A prominent **blue circular pin with a white walking-person icon** (user location / walking mode) near center.\n  - A larger **dark-maroon/brown rounded-square bus stop pin** with a bus icon, plus a faded duplicate behind it (cluster/ghost effect).\n  - A smaller, faded **gray bus pin** to the right.\n  - Small dark dots indicating stops along the roads.\n\n## Overlays on the Map\n- **Top-left:** a dark pill-shaped toggle labeled **\"Stops\"** with a blue switch (ON).\n- **Top-right:** a white circular **X (close)** button.\n- **Bottom-right:** a white circular **locate/my-location button** with a crosshair/target icon.\n\n## Bottom Sheet Content\n- **Status text (black, centered):** \"You are in ↗ **Ramapuram**.\" (Ramapuram underlined, with a diagonal-arrow glyph) and second line: **\"No buses available around you.\"**\n- **Search bar:** large rounded pill with a **pink-to-orange/red gradient** (magenta → red), white text `Search \"B` (typed query), and a white magnifying-glass icon on the right.\n\n## Bottom Navigation Bar (white pill/rounded bar)\nFive items:\n- **Home** — red/orange rounded-square icon with stacked bars\n- **Tickets** — gray ticket/bookmark icon\n- **BUS TICKET** — highlighted, elevated blue-gradient circle containing a bus-and-ticket icon, white label \"BUS TICKET\"\n- **Pass** — gray circular pass/card icon\n- **Account** — gray person silhouette icon\n\n## Bottom Service Tabs (partially cut off)\nLarge text row: **Bus · Metro · Train · Auto**, each above a partial card/skeleton graphic; \"Metro\" appears underlined/selected. The screen is cropped below this row.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793904594,
+  "id": "20261106024944cc0a677829164a80",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "20261106024944cc0a677829164a80",
+  "usage": {
+    "completion_tokens": 729,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1561,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 2290
+  }
+}

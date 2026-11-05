@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "1) Yes — dark teal card with a glowing green digital countdown showing \"02:55\", plus upcoming times 05:04, 05:07, 05:14 and \"DEPARTS 11:15 am\".\n\n2) Fare ₹40 (token), Duration 29 min (10 stops), Distance 14.72 km (avg 32 km/h).\n\n3) Yes — vertical progress line with stations: Meenambakkam, Nanganallur Road, Alandur (marked \"TRAIN HERE\"), Saidapet, Nandanam, Teynampet (last one partially cut off at the bottom).\n\n4) No — there's a \"Timetable\" button on the card, but no \"Book metro ticket\" button visible.\n\n5) Minor defects: the station list is cut off at the bottom (Teynampet partially visible, likely more stations hidden with no scroll indicator); there's a black notch/pill overlapping the status bar area near the time. Otherwise no overlaps or blank areas.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1793877165,
+  "id": "202611051912404ce131d246984231",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "202611051912404ce131d246984231",
+  "usage": {
+    "completion_tokens": 213,
+    "completion_tokens_details": {
+      "reasoning_tokens": 212
+    },
+    "prompt_tokens": 594,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 807
+  }
+}

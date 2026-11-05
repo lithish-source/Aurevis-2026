@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Chennai One reporting schema ─────────────────────────────────────────────
+// Every write goes to this local SQLite DB first (always works), then is
+// mirrored to the user's Supabase project when SUPABASE_URL + key are set.
+
+model AppUser {
+  id        String   @id @default(cuid())
+  deviceId  String   @unique
+  name      String
+  phone     String?
+  email     String?
+  city      String   @default("Chennai")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TicketPurchase {
+  id         String   @id @default(cuid())
+  ref        String   @unique
+  mode       String // bus | metro
+  routeNo    String?
+  fromStop   String
+  toStop     String
+  passengers Int      @default(1)
+  fare       Int
+  userId     String?
+  deviceId   String?
+  status     String   @default("issued")
+  createdAt  DateTime @default(now())
+}
+
+model PassPurchase {
+  id        String   @id @default(cuid())
+  passId    String
+  name      String
+  price     Int
+  validity  String
+  userId    String?
+  deviceId  String?
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+}
+
+model SosEvent {
+  id        String   @id @default(cuid())
+  kind      String // sos_pressed | sos_cancelled
+  lat       Float?
+  lon       Float?
+  userId    String?
+  deviceId  String?
+  createdAt DateTime @default(now())
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  name      String
+  payload   String // JSON string
+  userId    String?
+  deviceId  String?
+  createdAt DateTime @default(now())
+}
+
+model SyncLog {
+  id        String   @id @default(cuid())
+  table     String
+  rowId     String
+  target    String   @default("supabase")
+  status    String // ok | error | skipped
+  detail    String?
+  createdAt DateTime @default(now())
+}
+
+// ─── Social mobility-pulse pipeline ──────────────────────────────────────────
+// Raw social/public posts (replayed corpus or a live connector) → NLP
+// classification (event type / severity / sentiment) → gazetteer geocoding →
+// corroboration clustering + composite trust score → verified/unverified map.
+
+model SocialPost {
+  id            String   @id @default(cuid())
+  externalId    String   @unique // dedupe key from the source/corpus
+  source        String // instagram | facebook | twitter | reddit | telegram | news | official | bluesky
+  authorHandle  String?
+  authorMeta    String? // JSON: { accountAgeDays, followers, verified }
+  text          String
+  postedAt      DateTime
+  ingestedAt    DateTime @default(now())
+  isMobility    Boolean  @default(false)
+  eventType     String? // congestion | accident | flood | transit_disruption | road_closure | infrastructure | protest | hazard | other
+  severity      String? // low | medium | high | critical
+  sentiment     String? // negative | neutral | positive
+  summary       String?
+  lat           Float?
+  lon           Float?
+  placeLabel    String?
+  matchedPlaces String? // JSON: gazetteer matches
+  trustScore    Float?
+  verification  String? // verified | unverified | flagged
+  corroborates  Int      @default(0) // distinct authors in the corroboration cluster
+  nlpMeta       String? // JSON: { engine, trust breakdown … }
+  scenario      String? // corpus scenario id (replay runs)
+  timeScale     Float    @default(1) // replay speed when ingested (trust windows scale)
+
+  reportId      String? // incident report this post was aggregated into
+}
+
+// ─── Incident reports (admin console + citizen alerts) ──────────────────────
+// The data stream's posts are clustered by place/type/time into a single
+// actionable REPORT: an LLM-summarised description + a transport advisory
+// ("MTC buses via X delayed → use Metro from Y / other options"). Reports are
+// what pops up in the admin console and what nearby commuters get notified
+// about; admins resolve them, which sends an "all clear" notification.
+
+model IncidentReport {
+  id               String    @id @default(cuid())
+  code             String    @unique // human-friendly id, e.g. RPT-0042
+  eventType        String // congestion | accident | flood | transit_disruption | road_closure | infrastructure | protest | hazard | other
+  severity         String // low | medium | high | critical
+  placeLabel       String
+  lat              Float
+  lon              Float
+  title            String // short headline, e.g. "Waterlogging at Poonamallee Bypass"
+  summary          String // LLM-summarised report body (what/impact/outlook)
+  advisory         String? // JSON: { headline, busNote, metroNote, extra, metro:[{name,km}] }
+  status           String    @default("open") // open | resolved
+  openedAt         DateTime  @default(now())
+  lastScenarioAt   DateTime  @default(now()) // scenario clock of the latest aggregated post
+  lastActivityAt   DateTime  @default(now()) // wall clock of the latest update
+  resolvedAt       DateTime?
+  resolvedBy       String?
+  resolutionNote   String?
+  postCount        Int       @default(1)
+  maxTrust         Float?
+  verification     String? // best verification among aggregated posts
+  scenario         String?
+  postIds          String    @default("[]") // JSON array of SocialPost ids
+  notificationsSent Int      @default(0)
+}
+
+model UserNotification {
+  id        String    @id @default(cuid())
+  reportId  String?
+  code      String?   @unique // dedupe key, e.g. "<reportId>:escalation:high"
+  kind      String // incident | escalation | cleared
+  areaLabel String // place the incident happened at
+  lat       Float
+  lon       Float
+  radiusKm  Float    @default(5) // only users within this radius should see it
+  headline  String
+  body      String // full advisory text shown to nearby users
+  meta      String? // JSON: { eventType, severity, advisory }
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+}
