@@ -59,5 +59,10 @@ server.log
 /upload/
 # runtime junk
 *.pid
+# local SQLite database — regenerate with `bun run db:push`
+db/*.db
+# local backups exported from the sandbox
+download/*.zip
+download/*.bundle
 # Skills directory
 /skills/

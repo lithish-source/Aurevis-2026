@@ -123,7 +123,7 @@ src/
 prisma/schema.prisma       # SocialPost · IncidentReport · UserNotification
 scripts/corpus/            # scenario corpus builders → data/social/corpus.jsonl
 docs/screenshots/          # the images in this README
-db/custom.db               # demo SQLite DB (rebuild anytime with db:push)
+.env.example               # database config template (copy to .env)
 ```
 
 ## Notes & limitations
