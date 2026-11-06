@@ -439,7 +439,7 @@ export function CityPulseScreen() {
           <div className="relative mb-3 overflow-hidden rounded-[22px] shadow-sm ring-1 ring-slate-200">
             <div className="h-[260px] w-full bg-[#EAF3F6]">
               {mapEvents.length > 0 ? (
-                <SocialMapLeaflet className="h-full w-full" events={mapEvents} />
+                <SocialMapLeaflet className="h-full w-full" events={mapEvents} showControls={false} />
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
                   <svg viewBox="0 0 24 24" className="h-8 w-8 text-slate-300" fill="currentColor" aria-hidden><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z" /></svg>

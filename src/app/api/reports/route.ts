@@ -40,19 +40,37 @@ export async function GET(req: Request) {
     postIdsToFetch.length > 0
       ? await db.socialPost.findMany({
           where: { id: { in: postIdsToFetch } },
-          select: { id: true, source: true, authorHandle: true, nlpMeta: true },
+          select: { id: true, source: true, authorHandle: true, nlpMeta: true, sentiment: true, text: true, postedAt: true },
         })
       : [];
 
-  const postMetaMap = new Map<string, { photo: string | null; mismatchReason: string | null; source: string | null; authorHandle: string | null }>();
+  const postMetaMap = new Map<
+    string,
+    {
+      photo: string | null;
+      mismatchReason: string | null;
+      source: string | null;
+      authorHandle: string | null;
+      sentiment: string | null;
+      timeRefs: string[];
+      primaryText: string | null;
+    }
+  >();
   for (const p of posts) {
     let photo: string | null = null;
     let mismatchReason: string | null = null;
+    let timeRefs: string[] = [];
     if (p.nlpMeta) {
       try {
-        const parsed = JSON.parse(p.nlpMeta) as { ai?: { photo?: string; mismatch?: { detected?: boolean; reason?: string } } };
+        const parsed = JSON.parse(p.nlpMeta) as {
+          timeRefs?: string[];
+          ai?: { photo?: string; mismatch?: { detected?: boolean; reason?: string } };
+        };
         photo = parsed?.ai?.photo ?? null;
         mismatchReason = parsed?.ai?.mismatch?.detected ? (parsed?.ai?.mismatch?.reason ?? null) : null;
+        if (Array.isArray(parsed?.timeRefs)) {
+          timeRefs = parsed.timeRefs;
+        }
       } catch {}
     }
     postMetaMap.set(p.id, {
@@ -60,6 +78,9 @@ export async function GET(req: Request) {
       mismatchReason,
       source: p.source,
       authorHandle: p.authorHandle,
+      sentiment: p.sentiment ?? null,
+      timeRefs,
+      primaryText: p.text ?? null,
     });
   }
 
@@ -98,6 +119,9 @@ export async function GET(req: Request) {
       mismatchReason: meta?.mismatchReason ?? null,
       source: meta?.source ?? null,
       authorHandle: meta?.authorHandle ?? null,
+      sentiment: meta?.sentiment ?? (r.severity === "critical" || r.severity === "high" ? "negative" : "neutral"),
+      timeRefs: meta?.timeRefs ?? [],
+      primaryText: meta?.primaryText ?? null,
     };
   });
 

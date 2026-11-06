@@ -47,6 +47,9 @@ type IncidentReport = {
   mismatchReason?: string | null;
   source?: string | null;
   authorHandle?: string | null;
+  sentiment?: string | null;
+  timeRefs?: string[];
+  primaryText?: string | null;
 };
 
 type ReplayStatus = {
@@ -395,6 +398,7 @@ export function AdminConsole() {
   const [popupToasts, setPopupToasts] = useState<IncidentReport[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showDatasets, setShowDatasets] = useState(false);
+  const [showSpatialModal, setShowSpatialModal] = useState(false);
   const [redditBusy, setRedditBusy] = useState(false);
   const [redditFeedback, setRedditFeedback] = useState<string | null>(null);
   const [redditCounts, setRedditCounts] = useState<{ total: number; mobility: number }>({ total: 0, mobility: 0 });
@@ -408,6 +412,15 @@ export function AdminConsole() {
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
+  }, []);
+
+  // close spatial visualizer on Esc
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowSpatialModal(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const fetchReports = useCallback(async () => {
@@ -593,12 +606,12 @@ export function AdminConsole() {
         .filter((r) => r.status === "open")
         .map((r) => ({
           id: r.id,
-          source: "report",
+          source: r.source ?? "report",
           handle: r.code,
           text: r.summary,
           eventType: r.eventType,
           severity: r.severity,
-          sentiment: null,
+          sentiment: r.sentiment ?? (r.severity === "critical" || r.severity === "high" ? "negative" : "neutral"),
           placeLabel: r.placeLabel,
           lat: r.lat,
           lon: r.lon,
@@ -606,6 +619,10 @@ export function AdminConsole() {
           verification: r.verification,
           corroborates: Math.max(0, r.postCount - 1),
           postedAt: r.openedAt,
+          timeRef: r.timeRefs?.[0] ?? null,
+          title: r.title,
+          photo: r.photo ?? null,
+          mismatchReason: r.mismatchReason ?? null,
         })),
     [reports],
   );
@@ -631,6 +648,16 @@ export function AdminConsole() {
             <p className="text-[10.5px] font-semibold text-slate-500">Chennai One · Incident Reports Console · Govt. of Tamil Nadu</p>
           </div>
           <div className="ml-auto flex items-center gap-2.5">
+            <button
+              onClick={() => setShowSpatialModal(true)}
+              className="flex items-center gap-1.5 rounded-full border border-blue-500/40 bg-blue-600/20 px-3 py-1.5 text-[10.5px] font-extrabold uppercase tracking-wider text-blue-200 transition hover:bg-blue-600/30 shadow-sm shadow-blue-900/30"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              <span>Spatial Visualizer</span>
+              <span className="rounded bg-blue-500/30 px-1 py-0.2 text-[8px] text-blue-300 font-mono">{mapEvents.length}</span>
+            </button>
             <button
               onClick={() => setShowDatasets((s) => !s)}
               className={cn(
@@ -986,18 +1013,35 @@ export function AdminConsole() {
             {/* live map */}
             <section aria-label="Open incidents map" className="overflow-hidden rounded-2xl border border-slate-700/50 bg-[#111827]/70 backdrop-blur">
               <div className="flex items-center justify-between px-4 pb-2 pt-3.5">
-                <h2 className="text-[13px] font-extrabold uppercase tracking-widest text-slate-400">Open incidents map</h2>
-                <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-400">{mapEvents.length} pins</span>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[13px] font-extrabold uppercase tracking-widest text-slate-400">Open incidents map</h2>
+                  <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-400">{mapEvents.length} pins</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSpatialModal(true)}
+                  className="flex items-center gap-1 rounded-lg border border-blue-500/40 bg-blue-600/20 px-2.5 py-1 text-[10.5px] font-bold text-blue-300 hover:bg-blue-600/30 transition shadow-sm"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                  <span>⛶ Expand Map</span>
+                </button>
               </div>
               <div className="h-[300px] w-full">
                 {mapEvents.length === 0 ? (
                   <div className="flex h-full items-center justify-center bg-slate-900/40 text-[11.5px] font-semibold text-slate-600">No open incidents to map</div>
                 ) : (
-                  <SocialMapLeaflet events={mapEvents} onSelect={(e) => setSelectedId(e.id)} />
+                  <SocialMapLeaflet
+                    events={mapEvents}
+                    onSelect={(e) => setSelectedId(e.id)}
+                    showControls={false}
+                    selectedId={selectedId}
+                  />
                 )}
               </div>
-              <p className="px-4 pb-3 pt-2 text-[9.5px] leading-snug text-slate-600">
-                Pin colour = verification (green verified / amber unverified) · ring = corroborating reports
+              <p className="px-4 pb-3 pt-2 text-[9.5px] leading-snug text-slate-500">
+                Spatial pins encode issue glyph, severity pulse halo, and sentiment dots. Click <strong>⛶ Expand Map</strong> for multi-layer filtering and spatial entity inspection.
               </p>
             </section>
 
@@ -1016,6 +1060,262 @@ export function AdminConsole() {
           </aside>
         </div>
       </main>
+
+      {/* ── Full Spatial Visualizer Modal ── */}
+      {showSpatialModal && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-[#070A12]/95 backdrop-blur-2xl animate-fade-in text-slate-100">
+          {/* Top Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-[#0B0F19]/90 px-6 py-3.5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-500/20 text-white">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-extrabold tracking-tight text-white">
+                    Spatial Mobility Visualizer &amp; Incident Inspector
+                  </h2>
+                  <span className="rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[9.5px] font-black uppercase text-emerald-300">
+                    Live Geocoded Stream
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  NLP extracted locations, coordinates, time references, issue classification, severity halos &amp; sentiment analysis
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-[11px] font-mono text-slate-300">
+                <span>Total: <strong className="text-white">{mapEvents.length}</strong></span>
+                <span>·</span>
+                <span>Critical: <strong className="text-rose-400">{mapEvents.filter((e) => e.severity === "critical").length}</strong></span>
+                <span>·</span>
+                <span>Negative: <strong className="text-amber-400">{mapEvents.filter((e) => e.sentiment === "negative").length}</strong></span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSpatialModal(false)}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-1.5 text-xs font-bold text-slate-200 hover:bg-slate-700 transition"
+              >
+                <span>Close (Esc)</span>
+                <span className="text-slate-400">✕</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Modal Body: Map + Inspector Drawer */}
+          <div className="relative flex-1 flex flex-col lg:flex-row overflow-hidden">
+            {/* Map Canvas */}
+            <div className="relative flex-1 h-[55vh] lg:h-full w-full">
+              <SocialMapLeaflet
+                events={mapEvents}
+                onSelect={(e) => setSelectedId(e.id)}
+                selectedId={selectedId}
+                showControls={true}
+              />
+            </div>
+
+            {/* Side Spatial Inspector Drawer */}
+            <div className="w-full lg:w-[420px] border-t lg:border-t-0 lg:border-l border-slate-800 bg-[#0B0F19]/95 overflow-y-auto p-5 backdrop-blur-xl space-y-4">
+              {(() => {
+                const sel = reports.find((r) => r.id === selectedId) ?? null;
+                if (!sel) {
+                  return (
+                    <div className="flex h-full flex-col items-center justify-center text-center p-6 space-y-3">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700 bg-slate-800/40 text-slate-400 shadow-inner">
+                        <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-200">Select an Incident Pin</h3>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500 max-w-[260px]">
+                          Click any marker on the map to inspect its NLP-extracted coordinates, timestamps, sentiment, and transit advisory.
+                        </p>
+                      </div>
+                      {mapEvents.length > 0 && (
+                        <div className="w-full pt-4 space-y-2">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 text-left">
+                            Quick Select Active Incidents:
+                          </p>
+                          <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+                            {mapEvents.slice(0, 6).map((ev) => (
+                              <button
+                                key={ev.id}
+                                type="button"
+                                onClick={() => setSelectedId(ev.id)}
+                                className="w-full text-left rounded-xl border border-slate-800 bg-slate-900/60 p-2.5 hover:border-slate-700 hover:bg-slate-800/60 transition flex items-center justify-between"
+                              >
+                                <div>
+                                  <p className="text-xs font-bold text-slate-200">{ev.placeLabel ?? "Chennai"}</p>
+                                  <p className="text-[10px] text-slate-500 capitalize">{ev.eventType?.replace(/_/g, " ")}</p>
+                                </div>
+                                <span className={cn(
+                                  "rounded px-2 py-0.5 text-[9px] font-bold uppercase",
+                                  ev.severity === "critical" ? "bg-red-500/20 text-red-300" : "bg-amber-500/20 text-amber-300",
+                                )}>
+                                  {ev.severity}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4 animate-fade-in">
+                    {/* Header Details */}
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-extrabold text-blue-400">{sel.code}</span>
+                        <span className="rounded bg-slate-800 px-2 py-0.5 text-[9.5px] font-bold uppercase text-slate-300">
+                          {sel.status}
+                        </span>
+                      </div>
+                      <span className="text-[10.5px] font-mono text-slate-500">
+                        {new Date(sel.openedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+
+                    {/* Classified Badges */}
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[10.5px] font-extrabold uppercase text-blue-300">
+                        Issue: {sel.eventType.replace(/_/g, " ")}
+                      </span>
+                      <span className={cn(
+                        "rounded-lg px-2.5 py-1 text-[10.5px] font-extrabold uppercase",
+                        sel.severity === "critical"
+                          ? "bg-red-500/20 border border-red-500/40 text-red-300"
+                          : sel.severity === "high"
+                            ? "bg-orange-500/20 border border-orange-500/40 text-orange-300"
+                            : "bg-amber-500/20 border border-amber-500/40 text-amber-300",
+                      )}>
+                        Severity: {sel.severity}
+                      </span>
+                      <span className={cn(
+                        "rounded-lg px-2.5 py-1 text-[10.5px] font-extrabold uppercase",
+                        sel.sentiment === "negative"
+                          ? "bg-rose-500/20 border border-rose-500/30 text-rose-300"
+                          : sel.sentiment === "positive"
+                            ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-300"
+                            : "bg-slate-700/50 border border-slate-600 text-slate-300",
+                      )}>
+                        Sentiment: {sel.sentiment ?? "negative"}
+                      </span>
+                    </div>
+
+                    {/* Extracted Spatial Coordinates Card */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+                        <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>Extracted Spatial Geolocation</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                        <div className="rounded-lg bg-slate-800/60 p-2 border border-slate-700/50">
+                          <p className="text-[9.5px] text-slate-500 font-sans">Resolved Landmark</p>
+                          <p className="font-bold text-white truncate">{sel.placeLabel}</p>
+                        </div>
+                        <div className="rounded-lg bg-slate-800/60 p-2 border border-slate-700/50">
+                          <p className="text-[9.5px] text-slate-500 font-sans">Impact Buffer</p>
+                          <p className="font-bold text-blue-300">
+                            ~{sel.severity === "critical" ? "2.2 km" : sel.severity === "high" ? "1.4 km" : "850 m"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-slate-950/70 p-2 border border-slate-800 font-mono text-xs text-blue-400 flex items-center justify-between">
+                        <span>{sel.lat.toFixed(5)}° N, {sel.lon.toFixed(5)}° E</span>
+                        <span className="text-[9px] text-slate-500 uppercase">GPS Lock</span>
+                      </div>
+                    </div>
+
+                    {/* Extracted Time Entities */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-1.5">
+                      <p className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Extracted Time Reference
+                      </p>
+                      <p className="text-xs font-semibold text-slate-200">
+                        {sel.timeRefs && sel.timeRefs.length > 0 ? (
+                          <span className="rounded bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 text-amber-200">
+                            &quot;{sel.timeRefs.join("&quot;, &quot;")}&quot;
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">Extracted from event timeline</span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        Incident opened: {new Date(sel.openedAt).toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* Summary & Multimodal Evidence */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2">
+                      <p className="text-xs font-bold text-slate-300">LLM Narrative &amp; Citizen Evidence</p>
+                      <p className="text-xs leading-relaxed text-slate-300 bg-slate-950/50 p-2.5 rounded-lg border border-slate-800">
+                        {sel.summary}
+                      </p>
+
+                      {sel.mismatchReason && (
+                        <div className="rounded-lg border border-rose-500/40 bg-rose-950/30 p-2.5 text-[11px] text-rose-200 space-y-1">
+                          <p className="font-bold flex items-center gap-1 text-rose-300">
+                            <span>⚠️</span> Multimodal Vision Discrepancy Flagged
+                          </p>
+                          <p className="text-[10.5px] leading-snug">{sel.mismatchReason}</p>
+                        </div>
+                      )}
+
+                      {sel.photo && (
+                        <div className="overflow-hidden rounded-lg border border-slate-700">
+                          <img src={sel.photo} alt="Scene verification snapshot" className="h-32 w-full object-cover" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Advisory */}
+                    {sel.advisory && (
+                      <div className="rounded-xl border border-blue-900/50 bg-blue-950/20 p-3.5 space-y-1.5">
+                        <p className="text-xs font-bold text-blue-300">Multimodal Transit Advisory</p>
+                        <p className="text-xs font-medium text-slate-200">{sel.advisory.headline}</p>
+                        {sel.advisory.busNote && (
+                          <p className="text-[11px] text-slate-400">🚌 {sel.advisory.busNote}</p>
+                        )}
+                        {sel.advisory.metroNote && (
+                          <p className="text-[11px] text-emerald-400 font-medium">🚇 {sel.advisory.metroNote}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Action */}
+                    {sel.status === "open" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void resolve(sel.id, "Resolved via Spatial Visualizer");
+                        }}
+                        className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 py-2.5 text-xs font-extrabold text-white shadow-lg shadow-emerald-900/30 hover:brightness-110 transition"
+                      >
+                        ✓ Mark Resolved &amp; Broadcast All-Clear
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="border-t border-slate-800/80 bg-[#0B0F19]/85 py-3 text-center text-[10px] font-semibold text-slate-600 backdrop-blur">
         CUMTA · Chennai One prototype — simulated real-time social stream, NLP incident detection &amp; geo-targeted commuter alerts

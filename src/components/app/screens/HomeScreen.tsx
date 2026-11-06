@@ -245,6 +245,7 @@ export function HomeScreen() {
   const [showBus, setShowBus] = useState(true);
   const [showMetro, setShowMetro] = useState(true);
   const [showRailway, setShowRailway] = useState(true);
+  const [showIncidents, setShowIncidents] = useState(true);
 
   // nearby stops — fetched live from the transit API
   const [nearby, setNearby] = useState<{
@@ -318,6 +319,7 @@ export function HomeScreen() {
   };
 
   const toggles: { label: string; on: boolean; set: (v: boolean) => void }[] = [
+    { label: "Live Incidents", on: showIncidents, set: setShowIncidents },
     { label: "Bus Stops", on: showBus, set: setShowBus },
     { label: "Metro Stns", on: showMetro, set: setShowMetro },
     { label: "Railway Stns", on: showRailway, set: setShowRailway },
@@ -331,6 +333,7 @@ export function HomeScreen() {
         showBus={showBus}
         showMetro={showMetro}
         showRailway={showRailway}
+        showIncidents={showIncidents}
         stops={nearby?.stops}
       />
 

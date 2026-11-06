@@ -119,9 +119,19 @@ export function socialEventIcon(
   severity: string | null | undefined,
   glyph: "drop" | "crash" | "jam" | "wrench" | "alert" = "alert",
   size = 34,
+  sentiment?: string | null | undefined,
 ): L.DivIcon {
   const color = verification === "verified" ? "#0E8A4F" : verification === "flagged" ? "#D63A4A" : "#C77E12";
-  const ring = verification === "verified" ? "#5BD6A0" : verification === "flagged" ? "#F0A2AC" : "#F2D48A";
+  const ring =
+    severity === "critical"
+      ? "#DC2626"
+      : severity === "high"
+        ? "#F97316"
+        : verification === "verified"
+          ? "#5BD6A0"
+          : verification === "flagged"
+            ? "#F0A2AC"
+            : "#F2D48A";
   const pulse = severity === "high" || severity === "critical";
   const glyphs: Record<string, string> = {
     drop: `<svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M12 2.7c3.6 4.3 6 7.6 6 10.6a6 6 0 1 1-12 0c0-3 2.4-6.3 6-10.6z"/></svg>`,
@@ -130,15 +140,26 @@ export function socialEventIcon(
     wrench: `<svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M21.7 18.3l-6.1-6.1a5.5 5.5 0 0 0-7-7l3 3-2 2-3-3a5.5 5.5 0 0 0 7 7l6.1 6.1a1.4 1.4 0 0 0 2-2z"/></svg>`,
     alert: `<svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12 2l9.5 17H2.5L12 2zm-1 6v5h2V8h-2zm0 7v2h2v-2h-2z"/></svg>`,
   };
+
+  const sentimentDot =
+    sentiment === "negative"
+      ? `<div style="position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:#EF4444;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)" title="Negative Sentiment"></div>`
+      : sentiment === "positive"
+        ? `<div style="position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:#10B981;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)" title="Positive Sentiment"></div>`
+        : sentiment === "neutral"
+          ? `<div style="position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:#F59E0B;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)" title="Neutral Sentiment"></div>`
+          : "";
+
   return L.divIcon({
     className: "c1-pin",
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     html: `<div style="position:relative;width:${size}px;height:${size}px">
-      ${pulse ? `<span class="c1-ping" style="position:absolute;inset:-6px;border-radius:50%;background:${ring}66"></span>` : ""}
+      ${pulse ? `<span class="c1-ping" style="position:absolute;inset:${severity === "critical" ? "-9px" : "-6px"};border-radius:50%;background:${ring}66"></span>` : ""}
       <div style="position:absolute;inset:0;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 3px 10px rgba(20,20,20,.35);display:flex;align-items:center;justify-content:center">
         ${glyphs[glyph]}
       </div>
+      ${sentimentDot}
       ${verification === "verified" ? `<div style="position:absolute;right:-4px;bottom:-4px;width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid ${color};display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="8" height="8" fill="${color}"><path d="M9.5 16.2L5.3 12l-1.4 1.4 5.6 5.6 12-12-1.4-1.4z"/></svg></div>` : ""}
     </div>`,
   });
