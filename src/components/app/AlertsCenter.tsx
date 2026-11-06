@@ -150,7 +150,7 @@ function AlertToast({ alert, onClose, onOpen }: { alert: CitizenAlert; onClose: 
 
 export function IncidentNotificationCenter() {
   const { alerts, unread, seen, markSeen, refresh, area } = useAlerts();
-  const { openOverlay } = useApp();
+  const { openOverlay, overlay } = useApp();
   const [toasts, setToasts] = useState<CitizenAlert[]>([]);
 
   useEffect(() => {
@@ -188,35 +188,39 @@ export function IncidentNotificationCenter() {
 
   return (
     <>
-      {/* push-style popups */}
-      <div className="pointer-events-none absolute inset-x-3 top-11 z-[70] flex flex-col gap-2">
-        {toasts.map((a) => (
-          <div key={a.id} className="relative">
-            <AlertToast alert={a} onClose={() => dismiss(a.id)} onOpen={open} />
-          </div>
-        ))}
-      </div>
+      {/* push-style popups (hidden when inside notifications overlay) */}
+      {overlay !== "notifications" && (
+        <div className="pointer-events-none absolute inset-x-3 top-11 z-[70] flex flex-col gap-2">
+          {toasts.map((a) => (
+            <div key={a.id} className="relative">
+              <AlertToast alert={a} onClose={() => dismiss(a.id)} onOpen={open} />
+            </div>
+          ))}
+        </div>
+      )}
 
-      {/* floating bell — always visible (except during splash) */}
-      <button
-        onClick={open}
-        aria-label={`Alerts near ${area.label}${unread ? ` — ${unread} unread` : ""}`}
-        className="absolute left-3 top-11 z-[55] flex h-9 items-center gap-1.5 rounded-full bg-[#1C1C1E]/92 py-1.5 pl-2 pr-2.5 text-white shadow-lg shadow-black/25 backdrop-blur transition active:scale-95"
-      >
-        <span className="relative flex h-5 w-5 items-center justify-center" aria-hidden>
-          <svg viewBox="0 0 24 24" className="h-[15px] w-[15px]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.7 21a2 2 0 01-3.4 0" />
-          </svg>
-          {unread > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[#FF3B30] px-[3px] text-[8.5px] font-extrabold">
-              {unread > 9 ? "9+" : unread}
-            </span>
-          )}
-        </span>
-        <span className="text-[10px] font-bold tracking-wide">Alerts</span>
-        {unread > 0 && <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B30]" aria-hidden />}
-      </button>
+      {/* floating bell — only visible on main screens, hidden when an overlay (search, notifications, report, etc.) is open */}
+      {!overlay && (
+        <button
+          onClick={open}
+          aria-label={`Alerts near ${area.label}${unread ? ` — ${unread} unread` : ""}`}
+          className="absolute left-3 top-11 z-[55] flex h-9 items-center gap-1.5 rounded-full bg-[#1C1C1E]/92 py-1.5 pl-2 pr-2.5 text-white shadow-lg shadow-black/25 backdrop-blur transition active:scale-95 animate-fade-in"
+        >
+          <span className="relative flex h-5 w-5 items-center justify-center" aria-hidden>
+            <svg viewBox="0 0 24 24" className="h-[15px] w-[15px]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.7 21a2 2 0 01-3.4 0" />
+            </svg>
+            {unread > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[#FF3B30] px-[3px] text-[8.5px] font-extrabold">
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
+          </span>
+          <span className="text-[10px] font-bold tracking-wide">Alerts</span>
+          {unread > 0 && <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B30]" aria-hidden />}
+        </button>
+      )}
     </>
   );
 }
