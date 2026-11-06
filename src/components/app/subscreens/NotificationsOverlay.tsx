@@ -163,7 +163,7 @@ function OtherIncidentRow({
 }
 
 export function NotificationsOverlay() {
-  const { closeOverlay } = useApp();
+  const { closeOverlay, openOverlay } = useApp();
   const { alerts, unread, markAllRead, area, setArea } = useAlerts();
   const listRef = useRef<HTMLDivElement>(null);
   const [marking, setMarking] = useState(false);
@@ -326,6 +326,17 @@ export function NotificationsOverlay() {
             </div>
           </section>
         )}
+
+        {/* citizen reporting — the loop closes here: receive alerts, send reports */}
+        <button
+          onClick={() => openOverlay("reportIncident")}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white/60 py-3 text-[11.5px] font-bold text-slate-500 transition active:scale-[0.99]"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4 text-[#5B4FE9]" fill="currentColor" aria-hidden>
+            <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5z" />
+          </svg>
+          See something? Report an incident near you
+        </button>
       </div>
     </div>
   );

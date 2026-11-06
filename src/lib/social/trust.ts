@@ -21,6 +21,11 @@ export type VerificationStatus = "verified" | "unverified" | "flagged";
 const SOURCE_BASE: Record<string, number> = {
   official: 0.95,
   news: 0.85,
+  // a signed-in Chennai One commuter reporting from the app, GPS-located:
+  // more credible than an anonymous social account, below institutional
+  // sources. A lone citizen report stays "unverified" (amber) — it still
+  // opens an incident report — and climbs with corroboration like any post.
+  citizen_app: 0.6,
   telegram: 0.65,
   reddit: 0.6,
   twitter: 0.55,

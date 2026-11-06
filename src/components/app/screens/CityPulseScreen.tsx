@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 //   • scrolling feed of classified posts with trust scores & corroboration
 
 import { SocialMapLeaflet, type PulseMapEvent } from "@/components/app/social-maps";
+import { useApp } from "@/lib/app-store";
 
 type FeedPost = PulseMapEvent & { summary: string | null; isMobility: boolean; scenario: string | null };
 
@@ -58,6 +59,7 @@ const SOURCE_META: Record<string, { label: string; color: string }> = {
   news: { label: "News", color: "#0F766E" },
   official: { label: "Official", color: "#0E8A4F" },
   bluesky: { label: "Bluesky", color: "#1185FE" },
+  citizen_app: { label: "Citizen app", color: "#5B4FE9" },
   other: { label: "Social", color: "#64748B" },
 };
 
@@ -308,6 +310,7 @@ function ReplayPanel({
 // ── main screen ──────────────────────────────────────────────────────────────
 
 export function CityPulseScreen() {
+  const { openOverlay } = useApp();
   const [scenario, setScenario] = useState("monsoon-flood");
   const [speed, setSpeed] = useState(24);
   const [filter, setFilter] = useState<string>("all");
@@ -400,12 +403,20 @@ export function CityPulseScreen() {
             <h2 className="text-[18px] font-bold text-slate-900">City Pulse</h2>
             <p className="text-[11.5px] text-slate-500">Social media mobility events · NLP classified & verified</p>
           </div>
-          <button
-            onClick={() => setShowMap((v) => !v)}
-            className="rounded-full bg-slate-100 px-3 py-1.5 text-[10.5px] font-bold text-slate-600 transition active:scale-95"
-          >
-            {showMap ? "Hide map" : "Show map"}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => openOverlay("reportIncident")}
+              className="rounded-full bg-[#5B4FE9] px-3 py-1.5 text-[10.5px] font-bold text-white shadow transition active:scale-95"
+            >
+              ＋ Report
+            </button>
+            <button
+              onClick={() => setShowMap((v) => !v)}
+              className="rounded-full bg-slate-100 px-3 py-1.5 text-[10.5px] font-bold text-slate-600 transition active:scale-95"
+            >
+              {showMap ? "Hide map" : "Show map"}
+            </button>
+          </div>
         </div>
 
         {/* stat chips */}

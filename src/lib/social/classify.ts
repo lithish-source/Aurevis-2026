@@ -40,7 +40,11 @@ export type Classification = {
   summary: string;
 };
 
-export type ClassifyResult = Classification & { engine: "llm" | "heuristic" };
+/** engine that produced the classification:
+ *  llm | heuristic — the social pipeline's two engines
+ *  citizen — the commuter's own picks in the app (type/severity override
+ *            the NLP guess: they are standing at the scene) */
+export type ClassifyResult = Classification & { engine: "llm" | "heuristic" | "citizen" };
 
 const SYSTEM_PROMPT = `You are the NLP engine of a city mobility-intelligence system for Chennai, India.
 You classify social media posts about city transport, weather and street conditions.

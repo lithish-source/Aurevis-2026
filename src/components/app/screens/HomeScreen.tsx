@@ -602,6 +602,28 @@ export function HomeScreen() {
             ))}
           </div>
 
+          {/* ── citizen report CTA ── */}
+          <button
+            onClick={() => openOverlay("reportIncident")}
+            className="mt-3 flex w-full items-center gap-3 rounded-[24px] bg-gradient-to-r from-[#7C3AED] to-[#5B4FE9] p-3.5 text-left text-white shadow-[0_6px_18px_rgba(91,79,233,0.35)] transition active:scale-[0.99]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15" aria-hidden>
+              <svg viewBox="0 0 24 24" className="h-5.5 w-5.5" fill="currentColor">
+                <path d="M12 8V4l8 8-8 8v-4H4V8h8z" opacity="0" />
+                <path d="M3 10v4h3l5 4V6L6 10H3zm13.5 2c0-1.8-1-3.3-2.5-4v8c1.5-.7 2.5-2.2 2.5-4zM14 3.2v2.1c2.9.9 5 3.5 5 6.7s-2.1 5.8-5 6.7v2.1c4-.9 7-4.5 7-8.8s-3-7.9-7-8.8z" />
+              </svg>
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13.5px] font-bold leading-tight">See something? Report it</span>
+              <span className="mt-0.5 block text-[10.5px] font-medium leading-snug text-indigo-100/90">
+                Waterlogging, jams, breakdowns — alert commuters near you
+              </span>
+            </span>
+            <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[10px] font-extrabold tracking-wide text-[#5B4FE9] shadow-sm">
+              Report
+            </span>
+          </button>
+
           {/* ── track your buses ── */}
           <div className="mb-2 mt-3.5 flex items-start justify-between gap-3">
             <div className="min-w-0">

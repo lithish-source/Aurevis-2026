@@ -13,10 +13,10 @@
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { dualWrite } from "@/lib/report-server";
-import { classifyPosts, type ClassifyInput } from "@/lib/social/classify";
+import { classifyPosts, type ClassifyInput, type ClassifyResult } from "@/lib/social/classify";
 import { geocodePost } from "@/lib/social/gazetteer";
 import { computeTrust, findCluster, refreshClusterTrust, type AuthorMeta, type SocialPostRow } from "@/lib/social/trust";
-import { absorbIntoReports } from "@/lib/social/reports";
+import { absorbIntoReports, type ReportOutcome } from "@/lib/social/reports";
 
 export type RawSocialPost = {
   id?: string;
@@ -28,6 +28,10 @@ export type RawSocialPost = {
   geo?: { lat?: number; lon?: number } | null;
   scenario?: string;
   labels?: unknown; // ground truth — never used by the pipeline itself
+  /** Citizen-app report: the commuter's explicit picks. eventType/severity
+   *  override the NLP guess (they are standing at the scene); placeName is
+   *  the area they reported from, used as a gazetteer hint + place label. */
+  citizen?: { eventType: string; severity?: string; placeName?: string };
 };
 
 export type IngestedPost = {
@@ -53,11 +57,15 @@ function externalIdFor(p: RawSocialPost, postedAt: Date): string {
   return `auto-${createHash("sha1").update(basis).digest("hex").slice(0, 20)}`;
 }
 
-export async function ingestPosts(rawPosts: RawSocialPost[], opts: { timeScale?: number } = {}): Promise<{ results: IngestedPost[]; inserted: number; duplicates: number }> {
+export async function ingestPosts(
+  rawPosts: RawSocialPost[],
+  opts: { timeScale?: number; awaitReports?: boolean } = {},
+): Promise<{ results: IngestedPost[]; inserted: number; duplicates: number; outcomes: ReportOutcome[] }> {
   const timeScale = Math.max(1, Math.min(1000, opts.timeScale ?? 1));
   const results: IngestedPost[] = [];
   let inserted = 0;
   let duplicates = 0;
+  const outcomes: ReportOutcome[] = [];
 
   // 1) validate + dedupe against DB
   const valid: Array<{ raw: RawSocialPost; externalId: string; postedAt: Date }> = [];
@@ -91,7 +99,7 @@ export async function ingestPosts(rawPosts: RawSocialPost[], opts: { timeScale?:
     valid.push({ raw, externalId, postedAt });
   }
 
-  if (valid.length === 0) return { results, inserted, duplicates };
+  if (valid.length === 0) return { results, inserted, duplicates, outcomes };
 
   // 2) NLP classification (single LLM batch for the whole request)
   const inputs: ClassifyInput[] = valid.map((v) => ({
@@ -103,13 +111,34 @@ export async function ingestPosts(rawPosts: RawSocialPost[], opts: { timeScale?:
 
   // 3) geocode + trust + persist (in order, so corroboration grows naturally)
   for (const { raw, externalId, postedAt } of valid) {
-    const cls = classified.get(externalId);
+    const base = classified.get(externalId);
+    // citizen-app reports: the reporter's own picks win over the NLP guess —
+    // they chose the type on screen, and the app already geolocated them.
+    // The LLM/heuristic pass still contributes sentiment, summary, time refs.
+    const hint = raw.citizen;
+    const cls: ClassifyResult | undefined = hint
+      ? {
+          isMobility: true,
+          eventType: hint.eventType as ClassifyResult["eventType"],
+          severity: (hint.severity as ClassifyResult["severity"]) ?? base?.severity ?? "medium",
+          sentiment: base?.sentiment ?? "neutral",
+          locations: base?.locations ?? [],
+          timeRefs: base?.timeRefs ?? [],
+          summary: base?.summary ?? "",
+          engine: "citizen",
+        }
+      : base;
     const text = raw.text ?? "";
-    const geo = geocodePost(text, cls?.locations ?? []);
-    // explicit GPS (rare) beats gazetteer resolution
+    // seed the gazetteer with the reporter's area so it resolves even when
+    // the description never names the place
+    const geo = geocodePost(
+      text,
+      hint?.placeName ? [hint.placeName, ...(cls?.locations ?? [])] : (cls?.locations ?? []),
+    );
+    // explicit GPS (citizen app / rare social geo) beats gazetteer resolution
     const lat = raw.geo?.lat ?? geo.primary?.lat ?? null;
     const lon = raw.geo?.lon ?? geo.primary?.lon ?? null;
-    const placeLabel = geo.primary?.name ?? (raw.geo ? "GPS location" : null);
+    const placeLabel = geo.primary?.name ?? hint?.placeName ?? (raw.geo ? "GPS location" : null);
 
     const authorMeta: AuthorMeta | null = raw.author
       ? {
@@ -187,7 +216,7 @@ export async function ingestPosts(rawPosts: RawSocialPost[], opts: { timeScale?:
       trustScore: score,
       verification,
       corroborates: 0,
-      engine: cls?.engine ?? "heuristic",
+      engine: cls?.engine ?? (hint ? "citizen" : "heuristic"),
     });
   }
 
@@ -212,17 +241,25 @@ export async function ingestPosts(rawPosts: RawSocialPost[], opts: { timeScale?:
   }
 
   // 6) feed each new post into the incident-report builder (report popup in
-  //    the admin console + geo-targeted citizen notification). Runs in the
-  //    background so the ingest response stays fast.
+  //    the admin console + geo-targeted citizen notification). Background by
+  //    default so the ingest response stays fast; awaited when the caller
+  //    needs the resulting report (the citizen app confirms with the code).
   for (const r of results) {
     if (r.duplicate || !r.dbId) continue;
     const row = (await db.socialPost.findUnique({ where: { id: r.dbId } }).catch(() => null)) as unknown as SocialPostRow | null;
-    if (row) {
+    if (!row) continue;
+    if (opts.awaitReports) {
+      try {
+        outcomes.push(...(await absorbIntoReports(row as unknown as Parameters<typeof absorbIntoReports>[0])));
+      } catch (e) {
+        console.error("[reports] absorb failed:", e instanceof Error ? e.message : e);
+      }
+    } else {
       void absorbIntoReports(row as unknown as Parameters<typeof absorbIntoReports>[0]).catch((e) => {
         console.error("[reports] absorb failed:", e instanceof Error ? e.message : e);
       });
     }
   }
 
-  return { results, inserted, duplicates };
+  return { results, inserted, duplicates, outcomes };
 }
