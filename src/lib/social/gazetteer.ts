@@ -47,75 +47,75 @@ export const GAZETTEER: GazetteerEntry[] = [
   { name: "Washermanpet Metro", lat: 13.1074, lon: 80.2809, kind: "metro", aliases: ["washermanpet"] },
   { name: "Mannadi Metro", lat: 13.0953, lon: 80.286, kind: "metro", aliases: ["mannadi"] },
   { name: "High Court Metro", lat: 13.0874, lon: 80.2849, kind: "metro", aliases: ["high court"] },
-  { name: "Central Metro", lat: 13.0817, lon: 80.2737, kind: "metro", aliases: ["chennai central metro", "central station metro", "puratchi thalaivar dr mgr central metro", "puratchi thalaivar dr mgr central", "puratchi thalaivar dr. mgr central"] },
-  { name: "Government Estate Metro", lat: 13.0697, lon: 80.2728, kind: "metro", aliases: ["government estate", "govt estate"] },
-  { name: "LIC Metro", lat: 13.0647, lon: 80.2663, kind: "metro", aliases: ["lic"] },
-  { name: "Thousand Lights Metro", lat: 13.0585, lon: 80.2587, kind: "metro", aliases: ["thousand lights"] },
-  { name: "AG-DMS Metro", lat: 13.0452, lon: 80.2482, kind: "metro", aliases: ["ag-dms", "dms"] },
-  { name: "Teynampet Metro", lat: 13.0372, lon: 80.2465, kind: "metro", aliases: ["teynampet"] },
-  { name: "Nandanam Metro", lat: 13.0315, lon: 80.2407, kind: "metro", aliases: ["nandanam"] },
-  { name: "Saidapet Metro", lat: 13.0238, lon: 80.2283, kind: "metro", aliases: ["saidapet"] },
-  { name: "Little Mount Metro", lat: 13.0147, lon: 80.2241, kind: "metro", aliases: ["little mount"] },
-  { name: "Guindy Metro", lat: 13.0091, lon: 80.2131, kind: "metro", aliases: ["guindy"] },
-  { name: "Alandur Metro", lat: 13.0043, lon: 80.2016, kind: "metro", aliases: ["alandur", "arignar anna alandur"] },
-  { name: "Nanganallur Road Metro", lat: 12.9997, lon: 80.194, kind: "metro", aliases: ["nanganallur", "nanganallur road"] },
-  { name: "Meenambakkam Metro", lat: 12.9877, lon: 80.1764, kind: "metro", aliases: ["meenambakkam"] },
-  { name: "Airport Metro", lat: 12.9811, lon: 80.1641, kind: "metro", aliases: ["chennai airport", "airport", "airport metro"] },
-  { name: "Egmore Metro", lat: 13.079, lon: 80.2611, kind: "metro", aliases: ["egmore"] },
-  { name: "Nehru Park Metro", lat: 13.0787, lon: 80.2501, kind: "metro", aliases: ["nehru park"] },
-  { name: "Pachaiyappa's College Metro", lat: 13.0755, lon: 80.2327, kind: "metro", aliases: ["pachaiyappa s college", "pachaiyappa"] },
-  { name: "Kilpauk Metro", lat: 13.0776, lon: 80.2427, kind: "metro", aliases: ["kilpauk"] },
-  { name: "Shenoy Nagar Metro", lat: 13.0787, lon: 80.2251, kind: "metro", aliases: ["shenoy nagar"] },
-  { name: "Anna Nagar East Metro", lat: 13.0846, lon: 80.2189, kind: "metro", aliases: ["anna nagar east"] },
-  { name: "Anna Nagar Tower Metro", lat: 13.085, lon: 80.209, kind: "metro", aliases: ["anna nagar tower"] },
-  { name: "Thirumangalam Metro", lat: 13.0852, lon: 80.2018, kind: "metro", aliases: ["thirumangalam"] },
-  { name: "Koyambedu Metro", lat: 13.0738, lon: 80.195, kind: "metro", aliases: ["koyambedu"] },
-  { name: "CMBT Metro", lat: 13.0684, lon: 80.204, kind: "metro", aliases: ["cmbt metro", "puratchi thalaivi dr j jayalalithaa cmbt metro"] },
-  { name: "Arumbakkam Metro", lat: 13.0617, lon: 80.2117, kind: "metro", aliases: ["arumbakkam"] },
-  { name: "Vadapalani Metro", lat: 13.0509, lon: 80.212, kind: "metro", aliases: ["vadapalani"] },
-  { name: "Ashok Nagar Metro", lat: 13.0354, lon: 80.211, kind: "metro", aliases: ["ashok nagar"] },
-  { name: "Ekkattuthangal Metro", lat: 13.0171, lon: 80.2055, kind: "metro", aliases: ["ekkattuthangal"] },
-  { name: "St. Thomas Mount Metro", lat: 12.9949, lon: 80.1977, kind: "metro", aliases: ["st thomas mount", "saint thomas mount", "parangimalai"] },
+  { name: "Central Metro", lat: 13.0817, lon: 80.2737, kind: "metro", aliases: ["chennai central metro", "central station metro", "puratchi thalaivar dr mgr central metro", "puratchi thalaivar dr mgr central", "puratchi thalaivar dr. mgr central", "சென்னை சென்ட்ரல்", "சென்ட்ரல்"] },
+  { name: "Government Estate Metro", lat: 13.0697, lon: 80.2728, kind: "metro", aliases: ["government estate", "govt estate", "ஓமந்தூரார்"] },
+  { name: "LIC Metro", lat: 13.0647, lon: 80.2663, kind: "metro", aliases: ["lic", "எல்ஐசி"] },
+  { name: "Thousand Lights Metro", lat: 13.0585, lon: 80.2587, kind: "metro", aliases: ["thousand lights", "ஆயிரம் விளக்கு"] },
+  { name: "AG-DMS Metro", lat: 13.0452, lon: 80.2482, kind: "metro", aliases: ["ag-dms", "dms", "டிஎம்எஸ்"] },
+  { name: "Teynampet Metro", lat: 13.0372, lon: 80.2465, kind: "metro", aliases: ["teynampet", "தேனாம்பேட்டை"] },
+  { name: "Nandanam Metro", lat: 13.0315, lon: 80.2407, kind: "metro", aliases: ["nandanam", "நந்தனம்"] },
+  { name: "Saidapet Metro", lat: 13.0238, lon: 80.2283, kind: "metro", aliases: ["saidapet", "சைதாப்பேட்டை"] },
+  { name: "Little Mount Metro", lat: 13.0147, lon: 80.2241, kind: "metro", aliases: ["little mount", "சின்னமலை"] },
+  { name: "Guindy Metro", lat: 13.0091, lon: 80.2131, kind: "metro", aliases: ["guindy", "கிண்டி"] },
+  { name: "Alandur Metro", lat: 13.0043, lon: 80.2016, kind: "metro", aliases: ["alandur", "arignar anna alandur", "ஆலந்தூர்"] },
+  { name: "Nanganallur Road Metro", lat: 12.9997, lon: 80.194, kind: "metro", aliases: ["nanganallur", "nanganallur road", "நங்கநல்லூர்"] },
+  { name: "Meenambakkam Metro", lat: 12.9877, lon: 80.1764, kind: "metro", aliases: ["meenambakkam", "மீனம்பாக்கம்"] },
+  { name: "Airport Metro", lat: 12.9811, lon: 80.1641, kind: "metro", aliases: ["chennai airport", "airport", "airport metro", "விமான நிலையம்", "ஏர்போர்ட்"] },
+  { name: "Egmore Metro", lat: 13.079, lon: 80.2611, kind: "metro", aliases: ["egmore", "எழும்பூர்"] },
+  { name: "Nehru Park Metro", lat: 13.0787, lon: 80.2501, kind: "metro", aliases: ["nehru park", "நேரு பூங்கா"] },
+  { name: "Pachaiyappa's College Metro", lat: 13.0755, lon: 80.2327, kind: "metro", aliases: ["pachaiyappa s college", "pachaiyappa", "பச்சையப்பன்"] },
+  { name: "Kilpauk Metro", lat: 13.0776, lon: 80.2427, kind: "metro", aliases: ["kilpauk", "கீழ்ப்பாக்கம்"] },
+  { name: "Shenoy Nagar Metro", lat: 13.0787, lon: 80.2251, kind: "metro", aliases: ["shenoy nagar", "செனாய் நகர்"] },
+  { name: "Anna Nagar East Metro", lat: 13.0846, lon: 80.2189, kind: "metro", aliases: ["anna nagar east", "அண்ணா நகர் கிழக்கு"] },
+  { name: "Anna Nagar Tower Metro", lat: 13.085, lon: 80.209, kind: "metro", aliases: ["anna nagar tower", "அண்ணா நகர் டவர்", "அண்ணா நகர்"] },
+  { name: "Thirumangalam Metro", lat: 13.0852, lon: 80.2018, kind: "metro", aliases: ["thirumangalam", "திருமங்கலம்"] },
+  { name: "Koyambedu Metro", lat: 13.0738, lon: 80.195, kind: "metro", aliases: ["koyambedu", "கோயம்பேடு"] },
+  { name: "CMBT Metro", lat: 13.0684, lon: 80.204, kind: "metro", aliases: ["cmbt metro", "puratchi thalaivi dr j jayalalithaa cmbt metro", "சிஎம்பிடி"] },
+  { name: "Arumbakkam Metro", lat: 13.0617, lon: 80.2117, kind: "metro", aliases: ["arumbakkam", "அரும்பாக்கம்"] },
+  { name: "Vadapalani Metro", lat: 13.0509, lon: 80.212, kind: "metro", aliases: ["vadapalani", "வடபழனி"] },
+  { name: "Ashok Nagar Metro", lat: 13.0354, lon: 80.211, kind: "metro", aliases: ["ashok nagar", "அசோக் நகர்"] },
+  { name: "Ekkattuthangal Metro", lat: 13.0171, lon: 80.2055, kind: "metro", aliases: ["ekkattuthangal", "ஈக்காட்டுத்தாங்கல்"] },
+  { name: "St. Thomas Mount Metro", lat: 12.9949, lon: 80.1977, kind: "metro", aliases: ["st thomas mount", "saint thomas mount", "parangimalai", "பரங்கிமலை"] },
 
   // ── Bus termini & railway · CUMTA GTFS official stations ────────────────
-  { name: "CMBT Koyambedu", lat: 13.0674, lon: 80.1945, kind: "terminus", aliases: ["cmbt", "koyambedu", "chennai mofussil bus terminus", "koyambedu market"] },
-  { name: "Chennai Central", lat: 13.0832, lon: 80.2755, kind: "terminus", aliases: ["central station", "park town", "puratchi thalaivar mgr central", "mas"] },
-  { name: "Chennai Egmore", lat: 13.0777, lon: 80.2614, kind: "terminus", aliases: ["egmore station", "ms"] },
-  { name: "Chennai Beach Station", lat: 13.0917, lon: 80.2921, kind: "terminus", aliases: ["beach station", "msb"] },
-  { name: "Poonamallee Terminus", lat: 13.0467, lon: 80.0942, kind: "terminus", aliases: ["poonamallee"] },
-  { name: "Poonamallee Bypass Junction", lat: 13.0455, lon: 80.0985, kind: "junction", aliases: ["poonamallee bypass", "bypass junction poonamallee"] },
-  { name: "Kumananchavadi", lat: 13.0503, lon: 80.1072, kind: "junction", aliases: ["kumananchavadi"] },
-  { name: "Thirumazhisai", lat: 13.0497, lon: 80.0689, kind: "neighbourhood", aliases: ["thirumazhisai"] },
-  { name: "Sri Ramachandra Hospital", lat: 13.0357, lon: 80.1427, kind: "landmark", aliases: ["sri ramachandra", "sri ramachandra medical centre", "srmc"] },
-  { name: "Broadway Bus Stand", lat: 13.0872, lon: 80.2839, kind: "terminus", aliases: ["parrys", "parrys corner", "broadway", "broadway bus terminus"] },
-  { name: "Tambaram Sanatorium", lat: 12.933, lon: 80.1135, kind: "terminus", aliases: ["tambaram sanatorium"] },
-  { name: "Tambaram", lat: 12.9257, lon: 80.1174, kind: "terminus", aliases: ["tbm", "tambaram railway", "tambaram station"] },
-  { name: "Avadi", lat: 13.1182, lon: 80.1018, kind: "neighbourhood", aliases: ["avadi station", "avd"] },
-  { name: "Perambur", lat: 13.1077, lon: 80.2444, kind: "neighbourhood", aliases: ["perambur station", "per"] },
-  { name: "Mambalam Railway", lat: 13.0387, lon: 80.2279, kind: "landmark", aliases: ["mambalam", "west mambalam", "mbm"] },
-  { name: "Kodambakkam Railway", lat: 13.0522, lon: 80.2307, kind: "landmark", aliases: ["kodambakkam", "mkk"] },
-  { name: "Velachery Railway", lat: 12.9673, lon: 80.2193, kind: "terminus", aliases: ["velachery", "vlcy", "mrts velachery"] },
-  { name: "Chromepet Railway", lat: 12.9518, lon: 80.1411, kind: "landmark", aliases: ["chromepet", "cmp"] },
-  { name: "Pallavaram Railway", lat: 12.9683, lon: 80.1525, kind: "landmark", aliases: ["pallavaram", "pv"] },
-  { name: "Villivakkam Railway", lat: 13.1103, lon: 80.2091, kind: "landmark", aliases: ["villivakkam", "vlk"] },
+  { name: "CMBT Koyambedu", lat: 13.0674, lon: 80.1945, kind: "terminus", aliases: ["cmbt", "koyambedu", "chennai mofussil bus terminus", "koyambedu market", "கோயம்பேடு பேருந்து நிலையம்"] },
+  { name: "Chennai Central", lat: 13.0832, lon: 80.2755, kind: "terminus", aliases: ["central station", "park town", "puratchi thalaivar mgr central", "mas", "சென்ட்ரல் ரயில் நிலையம்"] },
+  { name: "Chennai Egmore", lat: 13.0777, lon: 80.2614, kind: "terminus", aliases: ["egmore station", "ms", "எழும்பூர் ரயில் நிலையம்"] },
+  { name: "Chennai Beach Station", lat: 13.0917, lon: 80.2921, kind: "terminus", aliases: ["beach station", "msb", "கடற்கரை ரயில் நிலையம்"] },
+  { name: "Poonamallee Terminus", lat: 13.0467, lon: 80.0942, kind: "terminus", aliases: ["poonamallee", "பூந்தமல்லி"] },
+  { name: "Poonamallee Bypass Junction", lat: 13.0455, lon: 80.0985, kind: "junction", aliases: ["poonamallee bypass", "bypass junction poonamallee", "பூந்தமல்லி பைபாஸ்"] },
+  { name: "Kumananchavadi", lat: 13.0503, lon: 80.1072, kind: "junction", aliases: ["kumananchavadi", "குமணன்சாவடி"] },
+  { name: "Thirumazhisai", lat: 13.0497, lon: 80.0689, kind: "neighbourhood", aliases: ["thirumazhisai", "திருமழிசை"] },
+  { name: "Sri Ramachandra Hospital", lat: 13.0357, lon: 80.1427, kind: "landmark", aliases: ["sri ramachandra", "sri ramachandra medical centre", "srmc", "ராமச்சந்திரா"] },
+  { name: "Broadway Bus Stand", lat: 13.0872, lon: 80.2839, kind: "terminus", aliases: ["parrys", "parrys corner", "broadway", "broadway bus terminus", "பாரிமுனை"] },
+  { name: "Tambaram Sanatorium", lat: 12.933, lon: 80.1135, kind: "terminus", aliases: ["tambaram sanatorium", "தாம்பரம் சானடோரியம்"] },
+  { name: "Tambaram", lat: 12.9257, lon: 80.1174, kind: "terminus", aliases: ["tbm", "tambaram railway", "tambaram station", "தாம்பரம்"] },
+  { name: "Avadi", lat: 13.1182, lon: 80.1018, kind: "neighbourhood", aliases: ["avadi station", "avd", "ஆவடி"] },
+  { name: "Perambur", lat: 13.1077, lon: 80.2444, kind: "neighbourhood", aliases: ["perambur station", "per", "பெரம்பூர்"] },
+  { name: "Mambalam Railway", lat: 13.0387, lon: 80.2279, kind: "landmark", aliases: ["mambalam", "west mambalam", "mbm", "மாம்பலம்"] },
+  { name: "Kodambakkam Railway", lat: 13.0522, lon: 80.2307, kind: "landmark", aliases: ["kodambakkam", "mkk", "கோடம்பாக்கம்"] },
+  { name: "Velachery Railway", lat: 12.9673, lon: 80.2193, kind: "terminus", aliases: ["velachery", "vlcy", "mrts velachery", "வேளச்சேரி"] },
+  { name: "Chromepet Railway", lat: 12.9518, lon: 80.1411, kind: "landmark", aliases: ["chromepet", "cmp", "குரோம்பேட்டை"] },
+  { name: "Pallavaram Railway", lat: 12.9683, lon: 80.1525, kind: "landmark", aliases: ["pallavaram", "pv", "பல்லாவரம்"] },
+  { name: "Villivakkam Railway", lat: 13.1103, lon: 80.2091, kind: "landmark", aliases: ["villivakkam", "vlk", "வில்லிவாக்கம்"] },
   { name: "Tiruvallur Railway", lat: 13.1165, lon: 79.9143, kind: "terminus", aliases: ["tiruvallur", "trl"] },
   { name: "Chengalpattu", lat: 12.6936, lon: 79.9809, kind: "terminus", aliases: ["chengalpattu", "cgl", "chengalpet"] },
 
   // ── Junctions & flyovers ─────────────────────────────────────────────────
-  { name: "Kathipara Junction", lat: 13.0072, lon: 80.2013, kind: "junction", aliases: ["kathipara", "kathipara flyover", "kathipara interchange"] },
-  { name: "Madhya Kailash Junction", lat: 13.0098, lon: 80.2482, kind: "junction", aliases: ["madhya kailash", "mk junction"] },
-  { name: "Anna Flyover", lat: 13.0609, lon: 80.2506, kind: "junction", aliases: ["anna flyover", "gemini flyover", "gemini"] },
-  { name: "Padi Junction", lat: 13.0954, lon: 80.1917, kind: "junction", aliases: ["padi", "padi flyover"] },
-  { name: "Porur Junction", lat: 13.0356, lon: 80.156, kind: "junction", aliases: ["porur"] },
-  { name: "Koyambedu Roundtana", lat: 13.0693, lon: 80.1948, kind: "junction", aliases: ["koyambedu roundtana"] },
-  { name: "Tidel Park Junction", lat: 12.9912, lon: 80.2463, kind: "junction", aliases: ["tidel park", "tidel"] },
-  { name: "Ashok Pillar", lat: 13.0347, lon: 80.2128, kind: "junction" },
+  { name: "Kathipara Junction", lat: 13.0072, lon: 80.2013, kind: "junction", aliases: ["kathipara", "kathipara flyover", "kathipara interchange", "கத்திப்பாரா", "கத்திப்பாரா சந்திப்பு"] },
+  { name: "Madhya Kailash Junction", lat: 13.0098, lon: 80.2482, kind: "junction", aliases: ["madhya kailash", "mk junction", "மத்திய கைலாஷ்"] },
+  { name: "Anna Flyover", lat: 13.0609, lon: 80.2506, kind: "junction", aliases: ["anna flyover", "gemini flyover", "gemini", "அண்ணா மேம்பாலம்"] },
+  { name: "Padi Junction", lat: 13.0954, lon: 80.1917, kind: "junction", aliases: ["padi", "padi flyover", "பாடி"] },
+  { name: "Porur Junction", lat: 13.0356, lon: 80.156, kind: "junction", aliases: ["porur", "போரூர்"] },
+  { name: "Koyambedu Roundtana", lat: 13.0693, lon: 80.1948, kind: "junction", aliases: ["koyambedu roundtana", "ரவுண்டானா"] },
+  { name: "Tidel Park Junction", lat: 12.9912, lon: 80.2463, kind: "junction", aliases: ["tidel park", "tidel", "டைடல் பார்க்"] },
+  { name: "Ashok Pillar", lat: 13.0347, lon: 80.2128, kind: "junction", aliases: ["அசோக் பில்லர்"] },
   { name: "Halda Junction", lat: 12.9825, lon: 80.2005, kind: "junction", aliases: ["halda", "haldia junction"] },
-  { name: "Moolakkadai Junction", lat: 13.1131, lon: 80.2615, kind: "junction", aliases: ["moolakkadai"] },
-  { name: "Anna Square / Marina", lat: 13.055, lon: 80.2926, kind: "junction", aliases: ["anna square"] },
+  { name: "Moolakkadai Junction", lat: 13.1131, lon: 80.2615, kind: "junction", aliases: ["moolakkadai", "மூலக்கடை"] },
+  { name: "Anna Square / Marina", lat: 13.055, lon: 80.2926, kind: "junction", aliases: ["anna square", "அண்ணா சதுக்கம்"] },
 
   // ── Landmarks ────────────────────────────────────────────────────────────
-  { name: "Marina Beach", lat: 13.05, lon: 80.2824, kind: "landmark", aliases: ["marina"] },
+  { name: "Marina Beach", lat: 13.05, lon: 80.2824, kind: "landmark", aliases: ["marina", "மெரினா", "மெரினா கடற்கரை"] },
   { name: "Elliot's Beach", lat: 13.0002, lon: 80.2668, kind: "landmark", aliases: ["besant nagar", "bessy beach", "bessy"] },
   { name: "Fort St George", lat: 13.0878, lon: 80.2859, kind: "landmark", aliases: ["fort st george"] },
   { name: "Madras High Court", lat: 13.0885, lon: 80.287, kind: "landmark", aliases: ["high court"] },
@@ -215,15 +215,16 @@ function normalize(s: string): string {
   return ` ${s
     .toLowerCase()
     .replace(/[’'`]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, " ")
     .replace(/\s+/g, " ")
     .trim()} `;
 }
 
 function mentionsAt(haystack: string, needle: string): number {
-  const n = needle.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const n = needle.toLowerCase().replace(/[^\p{L}\p{M}\p{N}]+/gu, " ").trim();
   if (!n) return -1;
-  const re = new RegExp(`(^| )(${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})( |$)`);
+  // Match standalone or with colloquial Tanglish/Tamil suffixes (-la, -le, -il, -kitta, -pakkam)
+  const re = new RegExp(`(^| )(${n.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")})(la|le|il|kitta|pakkam| |$)`, "u");
   const m = re.exec(haystack);
   return m ? m.index + m[1].length : -1;
 }
@@ -258,8 +259,8 @@ export function matchPlaces(text: string, extraMentions: string[] = []): Gazette
       // where the event happens; earlier mentions are often just context
       // ("Route 54 Broadway bus stuck before the Poonamallee bypass" →
       // Poonamallee wins over Broadway, the route destination).
-      const prefix = fragments.slice(Math.max(0, bestPos - 14), bestPos);
-      const prep = /(^| )(at|in|on|near|before|after|towards|toward|outside|opposite|around|via|front of)( the)? $/.test(prefix) ? 2 : 0;
+      const prefix = fragments.slice(Math.max(0, bestPos - 18), bestPos);
+      const prep = /(^| )(at|in|on|near|before|after|towards|toward|outside|opposite|around|via|front of|kitta|pakkam|la|le|varaikkum|அருகில்|பக்கத்தில்|இல்)( the)? $/i.test(prefix) ? 2 : 0;
       found.push({ ...entry, priority: PRIORITY[entry.kind], pos: bestPos, prep });
     }
   }

@@ -48,6 +48,8 @@ export type ClassifyResult = Classification & { engine: "llm" | "heuristic" | "c
 
 const SYSTEM_PROMPT = `You are the NLP engine of a city mobility-intelligence system for Chennai, India.
 You classify social media posts about city transport, weather and street conditions.
+Supports multilingual input: English, Tamil script (தமிழ்), and Tanglish (colloquial Romanized Tamil, e.g., "Velachery la thanni thengi irukku", "Kathipara kitta semma traffic", "MTC bus ninnuduchu").
+Accurately identify mobility events across all three formats and provide a concise English summary.
 
 For each post return strict JSON (no markdown, no commentary) with exactly these fields:
 - "i": the post index number you were given
@@ -71,29 +73,55 @@ Respond with a JSON array, one object per post, in the same order.`;
 // ── heuristic fallback ───────────────────────────────────────────────────────
 
 const TYPE_KEYWORDS: Array<[EventType, RegExp]> = [
-  ["flood", /waterlog|flood|inundat|knee[- ]deep|submerged|breach|overflow|water on (the )?road|sheet of water|water (everywhere|all over)|water pool/i],
-  ["accident", /accident|crash|collid|rammed|hit (a|an|the|my)|overturn|topple|lorry|ambulance|casualt|injur|bleeding/i],
-  ["protest", /protest|strike|bandh|road roko|blockade|dharna|rally|morcha/i],
-  ["hazard", /fire|smoke|gas leak|electrocut|live wire|open (manhole|drain)|tree branch hang|short circuit/i],
-  ["transit_disruption", /(metro|train|mtc|bus).{0,40}(delay|halt|held|hold|cancel|suspend|stuck|breakdown|glitch|fault|disrupt|not (moving|running)|divert|short terminat|pack|crowd)|(delay|halt|held|cancel|suspend|stuck|breakdown|glitch|fault|disrupt|divert).{0,40}(metro|train|mtc|bus)/i],
-  ["road_closure", /(road|route|stretch|bridge|flyover).{0,30}(closed|closure|blocked|barricad|shut|divert)|diversion|no entry/i],
-  ["infrastructure", /pothole|tree (fell|uprooted)|signal (not|down|failed)|streetlight|power cut|power failure|pipe burst|sewage|crack(ed)? (road|bridge)|water supply/i],
-  ["congestion", /traffic|jam|crawl|bumper to bumper|stuck (in|at)|heavy (traffic|jam)|gridlock|slow[- ]moving|long (queue|line)|snarl|standstill|crawling|standing still|no movement|not moving/i],
+  [
+    "flood",
+    /waterlog|flood|inundat|knee[- ]deep|submerged|breach|overflow|water on (the )?road|sheet of water|water (everywhere|all over)|water pool|thanni|thanneer|vellam|mazhai|thengi|தண்ணீர்|தண்ணி|வெள்ளம்|மழை|தேங்கி/i,
+  ],
+  [
+    "accident",
+    /accident|crash|collid|rammed|hit (a|an|the|my)|overturn|topple|lorry|ambulance|casualt|injur|bleeding|mutti|adipatt|vilunthu|விபத்து|மோதி|காயம்|விழுந்து/i,
+  ],
+  [
+    "protest",
+    /protest|strike|bandh|road roko|blockade|dharna|rally|morcha|porattam|mariyaal|போராட்டம்|சாலை மறியல்|பந்த்/i,
+  ],
+  [
+    "hazard",
+    /fire|smoke|gas leak|electrocut|live wire|open (manhole|drain)|tree branch hang|short circuit|theep|neruppu|thee|min saaram|தீ|நெருப்பு|மின்சாரம்|புகை/i,
+  ],
+  [
+    "transit_disruption",
+    /(metro|train|mtc|bus|vandi|வண்டி|பேருந்து|ரயில்|மெட்ரோ).{0,40}(delay|halt|held|hold|cancel|suspend|stuck|breakdown|glitch|fault|disrupt|ninnu|ninnuduchu|odala|vara maatinguthu|தாமதம்|நின்று|இயங்கவில்லை|வரவில்லை|not (moving|running)|divert|short terminat|pack|crowd)|(delay|halt|held|cancel|suspend|stuck|breakdown|glitch|fault|disrupt|ninnu|divert).{0,40}(metro|train|mtc|bus|vandi|பேருந்து|ரயில்)/i,
+  ],
+  [
+    "road_closure",
+    /(road|route|stretch|bridge|flyover|saalai|paadhai|சாலை|பாலம்).{0,30}(closed|closure|blocked|barricad|shut|divert|moodi|adaichu|மூடப்|தடை)|diversion|no entry|vazhi illa/i,
+  ],
+  [
+    "infrastructure",
+    /pothole|tree (fell|uprooted)|signal (not|down|failed)|streetlight|power cut|power failure|pipe burst|sewage|crack(ed)? (road|bridge)|water supply|maram|pallam|kuzhi|saakadai|மர|பள்ளம்|குழி|சாக்கடை/i,
+  ],
+  [
+    "congestion",
+    /traffic|jam|crawl|bumper to bumper|stuck (in|at)|heavy (traffic|jam)|gridlock|slow[- ]moving|long (queue|line)|snarl|standstill|crawling|standing still|no movement|not moving|nerisal|semma traffic|nagarala|mudiyala|நெரிசல்|போக்குவரத்து/i,
+  ],
 ];
 
 const SEV_RULES: Array<[Severity, RegExp]> = [
-  ["critical", /trapped|stranded inside|died|dead|death|casualt|fatal|electrocut|evacuat|completely (submerged|shut|closed)|collapsed|engulfed/i],
-  ["high", /injur|bleeding|hospital|knee[- ]deep|waist[- ]deep|shut (down|for)|suspend|major|hours|severe|rescue|fire/i],
-  ["medium", /slow|delay|divert|moderate|queue|crawl|barricad|blocked lane|partial/i],
+  ["critical", /trapped|stranded inside|died|dead|death|casualt|fatal|electrocut|evacuat|completely (submerged|shut|closed)|collapsed|engulfed|uyir|uyirilappu|மரணம்|உயிர்|சாவு/i],
+  ["high", /injur|bleeding|hospital|knee[- ]deep|waist[- ]deep|shut (down|for)|suspend|major|hours|severe|rescue|fire|semma|bayangara|romba|periya|heavy|padu mosam|பயங்கர|மோசம்|பெரிய/i],
+  ["medium", /slow|delay|divert|moderate|queue|crawl|barricad|blocked lane|partial|konjam|slight/i],
   ["low", /minor|slight|brief|few minutes|small|light/i],
 ];
 
-const NEG = /stuck|worst|terrible|horrible|awful|angry|frustrat|annoy|pathetic|sad|scary|dangerous|disgusting|nightmare|exhaust|panic|helpless|fed up/i;
-const POS = /cleared|normal|resum|smooth|thanks|good|great|appreciat|relief|reopened|back on track|on time|quick/i;
+const NEG = /stuck|worst|terrible|horrible|awful|angry|frustrat|annoy|pathetic|sad|scary|dangerous|disgusting|nightmare|exhaust|panic|helpless|fed up|mosam|kodumai|kashtam|waste|ayyayo|kadavule|மோசம்|கொடுமை|கஷ்டம்/i;
+const POS = /cleared|normal|resum|smooth|thanks|good|great|appreciat|relief|reopened|back on track|on time|quick|super|nalla|theerndhadhu|resumed|நன்றி|சீராக/i;
 
 export function heuristicClassify(text: string): Classification {
   const type = TYPE_KEYWORDS.find(([, re]) => re.test(text))?.[0] ?? "other";
-  const mobilityish = type !== "other" || /traffic|bus|metro|train|road|waterlog|jam|flood/i.test(text);
+  const mobilityish =
+    type !== "other" ||
+    /traffic|bus|metro|train|road|waterlog|jam|flood|thanni|vellam|mazhai|vandi|nerisal|நெரிசல்|பேருந்து|ரயில்|மெட்ரோ|சாலை|வெள்ளம்|மழை/i.test(text);
   let severity: Severity = "medium";
   for (const [sev, re] of SEV_RULES) {
     if (re.test(text)) {

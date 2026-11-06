@@ -418,6 +418,9 @@ async function analyzeImage(imageBuf: Buffer): Promise<CitizenAIImage | null> {
 const MULTIMODAL_PROMPT = `You are the AI transit incident severity and event classifier for Chennai One (CUMTA incident operations console in Chennai, India).
 Analyze the commuter's incident report (text description and optional scene photo).
 
+Multilingual Support:
+The description may be written in English, Tamil script (தமிழ்), or colloquial Tanglish (Romanized Tamil, e.g., "Velachery la semma thanni thengi irukku", "Kathipara kitta periya accident, traffic ninnu pochu", "MTC bus breakdown aaiduchu", "பஸ் வரவில்லை", "மெட்ரோ தாமதம்"). Accurately comprehend the intent across all three language forms, and provide the reasoning in clear English.
+
 Classify:
 1. "eventType": exactly one of "congestion", "accident", "flood", "transit_disruption", "road_closure", "infrastructure", "protest", "hazard", "other".
 2. "severity": exactly one of "low", "medium", "high", "critical".
