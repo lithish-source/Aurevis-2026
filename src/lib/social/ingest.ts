@@ -13,7 +13,7 @@
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { dualWrite } from "@/lib/report-server";
-import { classifyPosts, type ClassifyInput, type ClassifyResult } from "@/lib/social/classify";
+import { classifyPosts, heuristicClassify, type ClassifyInput, type ClassifyResult } from "@/lib/social/classify";
 import { geocodePost } from "@/lib/social/gazetteer";
 import { computeTrust, findCluster, refreshClusterTrust, type AuthorMeta, type SocialPostRow } from "@/lib/social/trust";
 import { absorbIntoReports, type ReportOutcome } from "@/lib/social/reports";
@@ -32,6 +32,9 @@ export type RawSocialPost = {
    *  override the NLP guess (they are standing at the scene); placeName is
    *  the area they reported from, used as a gazetteer hint + place label. */
   citizen?: { eventType: string; severity?: string; placeName?: string };
+  /** AI analysis attached by the caller (citizen-app BERT/YOLO verdicts,
+   *  scores and photo detections). Persisted verbatim inside nlpMeta.ai. */
+  ai?: unknown;
 };
 
 export type IngestedPost = {
@@ -59,7 +62,7 @@ function externalIdFor(p: RawSocialPost, postedAt: Date): string {
 
 export async function ingestPosts(
   rawPosts: RawSocialPost[],
-  opts: { timeScale?: number; awaitReports?: boolean } = {},
+  opts: { timeScale?: number; awaitReports?: boolean; noLlm?: boolean } = {},
 ): Promise<{ results: IngestedPost[]; inserted: number; duplicates: number; outcomes: ReportOutcome[] }> {
   const timeScale = Math.max(1, Math.min(1000, opts.timeScale ?? 1));
   const results: IngestedPost[] = [];
@@ -101,13 +104,19 @@ export async function ingestPosts(
 
   if (valid.length === 0) return { results, inserted, duplicates, outcomes };
 
-  // 2) NLP classification (single LLM batch for the whole request)
+  // 2) NLP classification (single LLM batch for the whole request; or the
+  //    instant keyword heuristic when the caller brings its own AI — the
+  //    citizen app runs BERT/YOLO locally and needs no LLM here)
   const inputs: ClassifyInput[] = valid.map((v) => ({
     id: v.externalId,
     text: v.raw.text ?? "",
     source: v.raw.source,
   }));
-  const classified = await classifyPosts(inputs);
+  const classified = opts.noLlm
+    ? new Map<string, ClassifyResult>(
+        valid.map((v) => [v.externalId, { ...heuristicClassify(v.raw.text ?? ""), engine: "heuristic" }]),
+      )
+    : await classifyPosts(inputs);
 
   // 3) geocode + trust + persist (in order, so corroboration grows naturally)
   for (const { raw, externalId, postedAt } of valid) {
@@ -176,6 +185,7 @@ export async function ingestPosts(
       hasTimeRef: (cls?.timeRefs?.length ?? 0) > 0,
       matchedPlaces: geo.matches.map((m) => m.name),
       trust: breakdown,
+      ...(raw.ai != null ? { ai: raw.ai } : {}),
     });
 
     const { local } = await dualWrite<unknown & { id: string }>("socialPost", "social_posts", {

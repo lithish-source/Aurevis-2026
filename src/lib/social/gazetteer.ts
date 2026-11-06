@@ -263,6 +263,24 @@ export type GeoResolution = {
   outOfRegion: boolean;
 };
 
+/** Nearest known place to a GPS fix — the reverse of geocodePost. Used by the
+ *  citizen report flow to turn auto-detected coordinates into a place label
+ *  ("Porur Junction") so reports read like the social-pipeline ones. */
+export function reverseGeocode(
+  lat: number,
+  lon: number,
+  maxKm = 5,
+): { name: string; kind: GazetteerKind; km: number } | null {
+  let best: { name: string; kind: GazetteerKind; km: number } | null = null;
+  for (const e of GAZETTEER) {
+    const km = distanceKm({ lat, lon }, e);
+    if (km <= maxKm && (best == null || km < best.km)) {
+      best = { name: e.name, kind: e.kind, km };
+    }
+  }
+  return best;
+}
+
 /** Resolve a post to coordinates from its text (plus optional LLM-extracted
  *  place mentions, which get scanned with the same gazetteer). */
 export function geocodePost(text: string, extractedLocations: string[] = []): GeoResolution {

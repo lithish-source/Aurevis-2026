@@ -1,73 +1,191 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Report an incident — the citizen side of the pipeline.
+// Report an incident — the citizen side of the pipeline, AI-assisted.
 //
-// "See something on your commute? Report it." A commuter picks what they see
-// (waterlogging, jam, breakdown…), how bad it is, describes it and confirms
-// the area. POST /api/citizen/report feeds it through the SAME pipeline as
-// social posts — classify → geocode → trust → incident report — and nearby
-// commuters (including the reporter) get the geo-targeted advisory, while the
-// report pops up in the CUMTA admin console for resolution.
+// "See something on your commute? Report it." The commuter only describes
+// what they see and (optionally) attaches a photo. The app AUTO-DETECTS the
+// location (GPS → nearest gazetteer place) and the date/time. On submit:
+//
+//   description ──▶ BERT (DistilBERT-MNLI zero-shot) ──▶ event type + severity
+//   photo       ──▶ YOLO (yolos-tiny) ──▶ vehicles / people counts
+//                 ──▶ combined severity score (0–1)
+//
+// POST /api/citizen/report runs both models server-side, fuses the scores,
+// and feeds the verdict through the SAME pipeline as social posts — trust →
+// incident report → geo-targeted notification → CUMTA console. The result
+// screen shows the commuter exactly what the AI understood and scored.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/lib/app-store";
 import { useAlerts, DEMO_AREAS } from "@/components/app/AlertsCenter";
 import { OverlayShell } from "@/components/app/OverlayShell";
-import { ALERT_EVENT_META, ALERT_SEV_COLOR, SEVERITY_RADIUS_KM } from "@/lib/alerts";
+import { ALERT_EVENT_META, ALERT_SEV_COLOR, SEVERITY_RADIUS_KM, distanceKm } from "@/lib/alerts";
+import { GAZETTEER } from "@/lib/social/gazetteer";
 import { getStoredUser } from "@/lib/reporting";
 
 type Phase = "form" | "sending" | "done";
+
+type AIResp = {
+  engines: { bert: boolean; yolo: boolean; lexicon: boolean };
+  eventType: string;
+  typeSource: "lexicon" | "bert";
+  severity: string;
+  textSeverity: string;
+  finalScore: number;
+  textScore: number;
+  imageScore: number | null;
+  bert: { typeLabel: string; typeConfidence: number; severityLabel: string } | null;
+  yolo: { objects: Array<{ label: string; count: number }>; vehicleCount: number; personCount: number } | null;
+  placeLabel: string;
+  detectedAt: string;
+  radiusKm: number;
+};
 
 type ReportResult = {
   code: string;
   title: string;
   action: string;
-  severity: string;
-  placeLabel: string | null;
   verification: string | null;
   trustScore: number | null;
+  ai: AIResp;
+  fromLabel: string;
 };
 
-/** the pickable incident types — same taxonomy as the NLP classifier */
-const TYPES: Array<{ id: string; label: string; emoji: string; suggestion: string }> = [
-  { id: "flood", label: "Waterlogging", emoji: "🌧", suggestion: "Knee-deep water on the road, autos refusing to ply." },
-  { id: "congestion", label: "Heavy traffic", emoji: "🚗", suggestion: "Bumper-to-bumper traffic, barely moving for the last 15 minutes." },
-  { id: "accident", label: "Accident", emoji: "💥", suggestion: "Two-wheeler skid near the signal, one lane blocked." },
-  { id: "transit_disruption", label: "Metro / bus issue", emoji: "🚇", suggestion: "Trains held at the station, announcement says a signal fault." },
-  { id: "road_closure", label: "Road closed", emoji: "🚧", suggestion: "Stretch barricaded by police, traffic being diverted." },
-  { id: "infrastructure", label: "Damage / fault", emoji: "🔧", suggestion: "Traffic signal not working, junction is chaotic." },
-  { id: "protest", label: "Protest", emoji: "📣", suggestion: "Road roko, crowd blocking the carriageway." },
-  { id: "hazard", label: "Hazard", emoji: "⚠️", suggestion: "Live wire hanging low over the road after the rain." },
-];
+type PhotoState = { dataUrl: string; thumb: string; preview: string };
 
-const SEV_OPTS = [
-  { id: "low", label: "Minor", desc: "short-lived, small impact" },
-  { id: "medium", label: "Noticeable", desc: "delay or diversion" },
-  { id: "high", label: "Serious", desc: "major disruption" },
-  { id: "critical", label: "Critical", desc: "danger to life" },
-];
+type LocState =
+  | { mode: "detecting" }
+  | { mode: "gps"; lat: number; lon: number; accuracy: number; label: string; km: number | null }
+  | { mode: "fallback"; area: { label: string; lat: number; lon: number } };
 
 const MIN_CHARS = 10;
 const MAX_CHARS = 300;
+
+const EXAMPLES = [
+  "Knee-deep waterlogging under the bridge, autos refusing to ply, buses stuck.",
+  "Bumper-to-bumper traffic near the signal, barely moving for the last 20 minutes.",
+  "Two-wheeler skid near the junction, rider injured, one lane blocked.",
+  "Metro trains held at the station, announcement says a signal fault.",
+  "Lorry collided with an auto near the toll gate, people trapped inside.",
+];
+
+/** nearest known Chennai place to a coordinate (client-side gazetteer scan) */
+function nearestPlace(lat: number, lon: number): { label: string; km: number | null } {
+  let best: { label: string; km: number } | null = null;
+  for (const g of GAZETTEER) {
+    const km = distanceKm({ lat, lon }, g);
+    if (!best || km < best.km) best = { label: g.name, km };
+  }
+  return best ? { label: best.label, km: best.km } : { label: "your location", km: null };
+}
+
+/** client-side resize: 640px JPEG for YOLO + 96px thumbnail for the record */
+async function processPhoto(file: File): Promise<PhotoState> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 640 / Math.max(bitmap.width, bitmap.height));
+  const w = Math.max(1, Math.round(bitmap.width * scale));
+  const h = Math.max(1, Math.round(bitmap.height * scale));
+  const big = document.createElement("canvas");
+  big.width = w;
+  big.height = h;
+  big.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
+  const ts = Math.min(96 / w, 96 / h, 1);
+  const small = document.createElement("canvas");
+  small.width = Math.max(1, Math.round(w * ts));
+  small.height = Math.max(1, Math.round(h * ts));
+  small.getContext("2d")!.drawImage(bitmap, 0, 0, small.width, small.height);
+  bitmap.close?.();
+  return {
+    dataUrl: big.toDataURL("image/jpeg", 0.72),
+    thumb: small.toDataURL("image/jpeg", 0.6).split(",")[1] ?? "",
+    preview: big.toDataURL("image/jpeg", 0.72),
+  };
+}
+
+function fmtDateTime(d: Date): string {
+  return d.toLocaleString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  });
+}
 
 export function ReportIncidentOverlay() {
   const { closeOverlay, openOverlay } = useApp();
   const { area, refresh } = useAlerts();
   const [phase, setPhase] = useState<Phase>("form");
-  const [type, setType] = useState<string | null>(null);
-  const [severity, setSeverity] = useState("medium");
   const [text, setText] = useState("");
-  const [reportArea, setReportArea] = useState(area);
+  const [photo, setPhoto] = useState<PhotoState | null>(null);
   const [result, setResult] = useState<ReportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loc, setLoc] = useState<LocState>({ mode: "detecting" });
+  const [now, setNow] = useState(() => new Date());
+  const [step, setStep] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const typeMeta = useMemo(() => TYPES.find((t) => t.id === type) ?? null, [type]);
-  const ready = type != null && text.trim().length >= MIN_CHARS;
+  // ── auto-detect location (GPS → nearest place; demo area as fallback) ────
+  const detectLocation = () => {
+    setLoc({ mode: "detecting" });
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setLoc({ mode: "fallback", area: { label: area.label, lat: area.lat, lon: area.lon } });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const near = nearestPlace(latitude, longitude);
+        setLoc({ mode: "gps", lat: latitude, lon: longitude, accuracy, label: near.label, km: near.km });
+      },
+      () => {
+        setLoc({ mode: "fallback", area: { label: area.label, lat: area.lat, lon: area.lon } });
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 },
+    );
+  };
+
+  useEffect(() => {
+    detectLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // live clock — the date/time is auto-captured with the report
+  useEffect(() => {
+    if (phase !== "form") return;
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, [phase]);
+
+  const coords =
+    loc.mode === "gps" ? { lat: loc.lat, lon: loc.lon, label: loc.label } : loc.mode === "fallback" ? { lat: loc.area.lat, lon: loc.area.lon, label: loc.area.label } : null;
+  const ready = text.trim().length >= MIN_CHARS && coords != null;
+
+  const steps = useMemo(
+    () => [
+      { label: "Fixing your location", detail: "GPS · gazetteer" },
+      { label: "Reading your description", detail: "BERT · DistilBERT-MNLI" },
+      ...(photo ? [{ label: "Scanning your photo", detail: "YOLO · yolos-tiny" }] : []),
+      { label: "Scoring severity", detail: "text + photo fusion" },
+      { label: "Routing to the control room", detail: "trust · geo-targeting" },
+    ],
+    [photo],
+  );
+
+  // advance the "analysing" animation while the request is in flight
+  useEffect(() => {
+    if (phase !== "sending") return;
+    setStep(0);
+    const t = setInterval(() => setStep((s) => Math.min(s + 1, steps.length - 1)), 1700);
+    return () => clearInterval(t);
+  }, [phase, steps.length]);
 
   const submit = async () => {
-    if (!type || !ready) return;
+    if (!ready || !coords) return;
     setPhase("sending");
     setError(null);
     try {
@@ -75,34 +193,35 @@ export function ReportIncidentOverlay() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          eventType: type,
-          severity,
           text: text.trim(),
-          lat: reportArea.lat,
-          lon: reportArea.lon,
-          areaLabel: reportArea.label,
+          lat: coords.lat,
+          lon: coords.lon,
+          occurredAt: new Date().toISOString(),
+          imageBase64: photo?.dataUrl ?? null,
+          thumbBase64: photo?.thumb ?? null,
           name: getStoredUser()?.name ?? null,
         }),
       });
       const data = (await res.json()) as {
         ok: boolean;
         error?: string;
-        post?: { placeLabel: string | null; severity: string | null; verification: string | null; trustScore: number | null };
+        post?: { verification: string | null; trustScore: number | null };
         report?: { code: string; title: string; action: string } | null;
+        ai?: AIResp;
       };
-      if (!res.ok || !data.ok) {
+      if (!res.ok || !data.ok || !data.ai) {
         setError(data.error ?? "Could not send the report — try again.");
         setPhase("form");
         return;
       }
       setResult({
         code: data.report?.code ?? "—",
-        title: data.report?.title ?? `${typeMeta?.label ?? "Incident"} reported`,
+        title: data.report?.title ?? `${ALERT_EVENT_META[data.ai.eventType]?.label ?? "Incident"} reported`,
         action: data.report?.action ?? "created",
-        severity: data.post?.severity ?? severity,
-        placeLabel: data.post?.placeLabel ?? reportArea.label,
         verification: data.post?.verification ?? null,
         trustScore: data.post?.trustScore ?? null,
+        ai: data.ai,
+        fromLabel: coords.label,
       });
       setPhase("done");
       void refresh(); // pull the fresh notification in immediately
@@ -112,68 +231,92 @@ export function ReportIncidentOverlay() {
     }
   };
 
+  const reset = () => {
+    setPhase("form");
+    setText("");
+    setPhoto(null);
+    setResult(null);
+    setError(null);
+    setStep(0);
+  };
+
   // ── form ────────────────────────────────────────────────────────────────
-  if (phase === "form" || phase === "sending") {
+  if (phase === "form") {
     return (
       <OverlayShell title="Report an incident" onClose={closeOverlay} headerClass="bg-white text-slate-900" contentClass="pt-9">
         <div className="space-y-5 px-4 pb-8">
           <p className="text-[12px] leading-relaxed text-slate-500">
-            Spotted waterlogging, a jam, a breakdown or a blocked road? Report it — it reaches the control
-            room and <span className="font-semibold text-slate-700">alerts commuters near you</span>.
+            Describe what you see and attach a photo — <span className="font-semibold text-slate-700">BERT reads your words, YOLO scans your
+            photo</span> and the control room receives a severity-scored report.
           </p>
 
-          {/* what's happening */}
-          <section>
-            <h2 className="mb-2 text-[13px] font-bold text-slate-800">What&apos;s happening?</h2>
-            <div className="grid grid-cols-2 gap-2">
-              {TYPES.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setType(t.id)}
-                  aria-pressed={type === t.id}
-                  className={cn(
-                    "flex items-center gap-2 rounded-[18px] border px-3 py-2.5 text-left transition active:scale-[0.98]",
-                    type === t.id
-                      ? "border-[#5B4FE9] bg-[#5B4FE9]/8 shadow-sm ring-1 ring-[#5B4FE9]/30"
-                      : "border-slate-200 bg-white",
+          {/* auto-detected location + time */}
+          <section className="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
+            <div className="flex items-start gap-2.5 px-3.5 py-3">
+              <svg viewBox="0 0 24 24" className="mt-0.5 h-4.5 w-4.5 shrink-0 text-[#5B4FE9]" fill="currentColor" aria-hidden>
+                <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z" />
+              </svg>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#5B4FE9]">Auto-detected location</span>
+                  {loc.mode === "gps" && (
+                    <button onClick={detectLocation} className="rounded-full bg-[#5B4FE9]/10 px-1.5 py-px text-[8.5px] font-bold text-[#5B4FE9]">
+                      re-detect
+                    </button>
                   )}
-                >
-                  <span className="text-[17px]" aria-hidden>
-                    {t.emoji}
-                  </span>
-                  <span className={cn("text-[12px] font-bold", type === t.id ? "text-[#4438C9]" : "text-slate-700")}>
-                    {t.label}
-                  </span>
-                </button>
-              ))}
+                </div>
+                {loc.mode === "detecting" && (
+                  <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] font-bold text-slate-500">
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 animate-spin" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden>
+                      <circle cx="12" cy="12" r="9" strokeOpacity="0.25" />
+                      <path d="M21 12a9 9 0 0 0-9-9" strokeLinecap="round" />
+                    </svg>
+                    Locating you…
+                  </p>
+                )}
+                {loc.mode === "gps" && (
+                  <>
+                    <p className="mt-0.5 text-[13px] font-bold text-slate-800">{loc.label}</p>
+                    <p className="mt-0.5 font-mono text-[9.5px] font-semibold text-slate-400">
+                      {loc.lat.toFixed(4)}, {loc.lon.toFixed(4)} · ±{Math.round(loc.accuracy)} m
+                      {loc.km != null && loc.km >= 0.05 ? ` · ${loc.km.toFixed(1)} km from ${loc.label}` : " · at the spot"}
+                    </p>
+                  </>
+                )}
+                {loc.mode === "fallback" && (
+                  <>
+                    <label htmlFor="report-area" className="sr-only">
+                      Reporting from
+                    </label>
+                    <select
+                      id="report-area"
+                      value={loc.area.label}
+                      onChange={(e) => {
+                        const a = DEMO_AREAS.find((d) => d.label === e.target.value);
+                        if (a) setLoc({ mode: "fallback", area: a });
+                      }}
+                      className="mt-0.5 w-full cursor-pointer appearance-none bg-transparent text-[13px] font-bold text-slate-800 focus:outline-none"
+                    >
+                      {!DEMO_AREAS.some((d) => d.label === loc.area.label) && <option value="">{loc.area.label}</option>}
+                      {DEMO_AREAS.map((a) => (
+                        <option key={a.label} value={a.label}>
+                          {a.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-0.5 text-[9.5px] font-semibold text-slate-400">GPS unavailable — prototype demo area selected</p>
+                  </>
+                )}
+              </div>
             </div>
-          </section>
-
-          {/* how bad */}
-          <section>
-            <h2 className="mb-2 text-[13px] font-bold text-slate-800">How bad is it?</h2>
-            <div className="grid grid-cols-4 gap-1.5">
-              {SEV_OPTS.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setSeverity(s.id)}
-                  aria-pressed={severity === s.id}
-                  className={cn(
-                    "rounded-[14px] border px-1 py-2 text-center transition active:scale-[0.98]",
-                    severity === s.id ? "border-transparent text-white shadow-sm" : "border-slate-200 bg-white text-slate-600",
-                  )}
-                  style={severity === s.id ? { background: ALERT_SEV_COLOR[s.id] } : undefined}
-                >
-                  <span className="block text-[11px] font-extrabold">{s.label}</span>
-                  <span className={cn("mt-0.5 block text-[8px] font-semibold leading-tight", severity === s.id ? "text-white/80" : "text-slate-400")}>
-                    {s.desc}
-                  </span>
-                </button>
-              ))}
+            <div className="flex items-center gap-2 border-t border-slate-100 bg-slate-50/60 px-3.5 py-2">
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" strokeLinecap="round" />
+              </svg>
+              <span className="text-[10.5px] font-bold text-slate-600">{fmtDateTime(now)}</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">· auto-captured</span>
             </div>
-            <p className="mt-1.5 text-[10px] font-medium text-slate-400">
-              Alerts commuters within <span className="font-bold text-slate-500">{SEVERITY_RADIUS_KM[severity]} km</span> of the spot.
-            </p>
           </section>
 
           {/* description */}
@@ -187,54 +330,73 @@ export function ReportIncidentOverlay() {
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
-              rows={3}
-              placeholder={typeMeta ? typeMeta.suggestion : "e.g. Waterlogging near the metro station, buses stuck…"}
+              rows={4}
+              placeholder="e.g. Knee-deep waterlogging under the bridge, autos refusing to ply…"
               aria-label="Describe the incident"
               className="w-full resize-none rounded-[18px] border border-slate-200 bg-white px-3.5 py-3 text-[12.5px] leading-relaxed text-slate-700 placeholder:text-slate-300 focus:border-[#5B4FE9] focus:outline-none focus:ring-2 focus:ring-[#5B4FE9]/20"
             />
-            {typeMeta && (
-              <button
-                onClick={() => setText(typeMeta.suggestion)}
-                className="mt-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[9.5px] font-bold text-slate-500 transition active:scale-95"
-              >
-                ✎ Use an example
-              </button>
-            )}
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {EXAMPLES.slice(0, 3).map((ex, i) => (
+                <button
+                  key={i}
+                  onClick={() => setText(ex.slice(0, MAX_CHARS))}
+                  className="rounded-full bg-slate-100 px-2.5 py-1 text-[9.5px] font-bold text-slate-500 transition active:scale-95"
+                >
+                  ✎ Example {i + 1}
+                </button>
+              ))}
+            </div>
           </section>
 
-          {/* where */}
+          {/* photo */}
           <section>
-            <h2 className="mb-2 text-[13px] font-bold text-slate-800">Where are you?</h2>
-            <div className="flex items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-3.5 py-3">
-              <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 shrink-0 text-[#5B4FE9]" fill="currentColor" aria-hidden>
-                <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z" />
-              </svg>
-              <label htmlFor="report-area" className="sr-only">
-                Reporting from
-              </label>
-              <select
-                id="report-area"
-                value={reportArea.label}
-                onChange={(e) => {
-                  const a = DEMO_AREAS.find((d) => d.label === e.target.value);
-                  if (a) setReportArea(a);
-                }}
-                className="flex-1 cursor-pointer appearance-none bg-transparent text-[13px] font-bold text-slate-800 focus:outline-none"
+            <h2 className="mb-2 text-[13px] font-bold text-slate-800">Add a photo <span className="font-semibold text-slate-400">(optional)</span></h2>
+            {photo ? (
+              <div className="relative overflow-hidden rounded-[18px] border border-slate-200">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo.preview} alt="Attached report photo" className="max-h-52 w-full object-cover" />
+                <div className="flex items-center justify-between bg-slate-900/85 px-3 py-1.5 backdrop-blur">
+                  <span className="text-[9.5px] font-bold text-white/90">YOLO will scan this for vehicles &amp; people</span>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => fileRef.current?.click()} className="rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-bold text-white">
+                      Replace
+                    </button>
+                    <button onClick={() => setPhoto(null)} className="rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-bold text-white">
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="flex w-full items-center justify-center gap-2 rounded-[18px] border-2 border-dashed border-slate-200 bg-slate-50/50 py-5 text-slate-500 transition active:scale-[0.99]"
               >
-                {!DEMO_AREAS.some((d) => d.label === reportArea.label) && <option value="">{reportArea.label}</option>}
-                {DEMO_AREAS.map((a) => (
-                  <option key={a.label} value={a.label}>
-                    {a.label}
-                  </option>
-                ))}
-              </select>
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </div>
-            <p className="mt-1.5 text-[10px] font-medium text-slate-400">
-              Your live GPS is attached — the incident is pinned where you are (prototype: the selected demo area).
-            </p>
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                <span className="text-[12px] font-bold">Take / attach a photo</span>
+              </button>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              capture="environment"
+              className="hidden"
+              aria-label="Photo of the incident"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (!f) return;
+                try {
+                  setPhoto(await processPhoto(f));
+                } catch {
+                  setError("Could not read that photo — try another one.");
+                }
+              }}
+            />
           </section>
 
           {error && (
@@ -246,24 +408,67 @@ export function ReportIncidentOverlay() {
           {/* submit */}
           <button
             onClick={submit}
-            disabled={!ready || phase === "sending"}
+            disabled={!ready}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#5B4FE9] to-[#3D7BF0] py-3.5 text-[14px] font-extrabold text-white shadow-lg shadow-indigo-500/25 transition active:scale-[0.98] disabled:opacity-50"
           >
-            {phase === "sending" ? (
-              <>
-                <svg viewBox="0 0 24 24" className="h-4 w-4 animate-spin" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden>
-                  <circle cx="12" cy="12" r="9" strokeOpacity="0.25" />
-                  <path d="M21 12a9 9 0 0 0-9-9" strokeLinecap="round" />
-                </svg>
-                Sending to the control room…
-              </>
-            ) : (
-              <>Send report</>
-            )}
+            Send report
           </button>
           <p className="text-center text-[9.5px] leading-relaxed text-slate-400">
-            Your report is checked by the same verification engine as social posts, then routed to the
-            CUMTA console. Misuse can be traced to your account.
+            Your description is analysed by BERT, your photo by YOLO, and the scored report reaches the CUMTA console.
+            Misuse can be traced to your account.
+          </p>
+        </div>
+      </OverlayShell>
+    );
+  }
+
+  // ── sending: the analysis pipeline, step by step ────────────────────────
+  if (phase === "sending") {
+    return (
+      <OverlayShell title="Analysing your report" onClose={closeOverlay} headerClass="bg-white text-slate-900">
+        <div className="flex flex-col items-center px-5 pb-8 pt-6">
+          <div className="flex w-full items-center gap-2.5 rounded-[18px] border border-slate-200 bg-white px-3.5 py-2.5">
+            {photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photo.preview} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-slate-200" />
+            ) : (
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[15px]" aria-hidden>
+                📝
+              </span>
+            )}
+            <p className="min-w-0 flex-1 truncate text-[11.5px] font-semibold text-slate-600">“{text.trim()}”</p>
+          </div>
+
+          <div className="mt-5 w-full space-y-1">
+            {steps.map((s, i) => {
+              const state = i < step ? "done" : i === step ? "active" : "wait";
+              return (
+                <div key={s.label} className={cn("flex items-center gap-3 rounded-2xl px-3 py-2.5 transition", state === "active" && "bg-[#5B4FE9]/6")}>
+                  {state === "done" ? (
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100" aria-hidden>
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    </span>
+                  ) : state === "active" ? (
+                    <svg viewBox="0 0 24 24" className="h-6 w-6 shrink-0 animate-spin text-[#5B4FE9]" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden>
+                      <circle cx="12" cy="12" r="9" strokeOpacity="0.25" />
+                      <path d="M21 12a9 9 0 0 0-9-9" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-slate-200" aria-hidden />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className={cn("text-[12px] font-bold", state === "wait" ? "text-slate-400" : "text-slate-800")}>{s.label}</p>
+                    {state !== "wait" && <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400">{s.detail}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="mt-5 text-center text-[10px] font-semibold leading-relaxed text-slate-400">
+            Local transformer inference — first run may take a few extra seconds while the models warm up.
           </p>
         </div>
       </OverlayShell>
@@ -271,83 +476,164 @@ export function ReportIncidentOverlay() {
   }
 
   // ── done ────────────────────────────────────────────────────────────────
-  const sev = result?.severity ?? "medium";
-  const ev = ALERT_EVENT_META[type ?? "other"] ?? ALERT_EVENT_META.other;
-  const verification = result?.verification;
-  const radius = SEVERITY_RADIUS_KM[sev] ?? 6;
+  const ai = result?.ai;
+  const sev = ai?.severity ?? "medium";
+  const ev = ALERT_EVENT_META[ai?.eventType ?? "other"] ?? ALERT_EVENT_META.other;
+  const score = ai?.finalScore ?? 0;
+  const scorePct = Math.round(score * 100);
 
   return (
     <OverlayShell title="Report an incident" onClose={closeOverlay} headerClass="bg-white text-slate-900">
-      <div className="flex flex-col items-center px-5 pb-8 pt-8">
-        <span className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 shadow-inner" aria-hidden>
-          <svg viewBox="0 0 24 24" className="h-10 w-10 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex flex-col items-center px-5 pb-8 pt-6">
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 shadow-inner" aria-hidden>
+          <svg viewBox="0 0 24 24" className="h-8 w-8 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6L9 17l-5-5" />
           </svg>
         </span>
-        <h2 className="mt-4 text-[19px] font-extrabold text-slate-900">Report sent!</h2>
-        <p className="mt-1 text-center text-[12.5px] leading-relaxed text-slate-500">
+        <h2 className="mt-3 text-[19px] font-extrabold text-slate-900">Report sent!</h2>
+        <p className="mt-0.5 text-center text-[12px] leading-relaxed text-slate-500">
           {result?.action === "updated" || result?.action === "escalated"
-            ? "Your report was added to an ongoing incident at the same spot — it strengthens the evidence."
+            ? "Added to an ongoing incident at the same spot — your evidence strengthens it."
             : "The control room has been notified and is reviewing it."}
         </p>
 
-        {/* report card */}
-        <div className="mt-5 w-full overflow-hidden rounded-[22px] bg-white shadow-md">
+        {/* AI analysis card */}
+        <div className="mt-4 w-full overflow-hidden rounded-[22px] bg-white shadow-md">
           <div className="h-1.5 w-full" style={{ background: ALERT_SEV_COLOR[sev] }} />
-          <div className="p-4">
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-slate-900 px-2.5 py-1 font-mono text-[11px] font-bold tracking-widest text-white">
-                {result?.code}
+          <div className="px-4 py-3.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">AI severity analysis</span>
+              <span className="flex items-center gap-1">
+                <span className={cn("rounded-full px-1.5 py-px text-[8px] font-extrabold uppercase tracking-wider", ai?.engines.bert ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>
+                  BERT {ai?.engines.bert ? "✓" : "—"}
+                </span>
+                <span className={cn("rounded-full px-1.5 py-px text-[8px] font-extrabold uppercase tracking-wider", ai?.engines.yolo ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500")}>
+                  YOLO {ai?.engines.yolo ? "✓" : "—"}
+                </span>
               </span>
+            </div>
+
+            <div className="mt-2 flex items-end gap-3">
+              <span className="text-[34px] font-black leading-none tracking-tight" style={{ color: ALERT_SEV_COLOR[sev] }}>
+                {score.toFixed(2)}
+              </span>
+              <div className="flex-1 pb-1.5">
+                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${scorePct}%`, background: ALERT_SEV_COLOR[sev] }} />
+                </div>
+              </div>
               <span
-                className="rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider"
+                className="mb-0.5 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold uppercase tracking-wider"
                 style={{ color: ALERT_SEV_COLOR[sev], background: `${ALERT_SEV_COLOR[sev]}1A` }}
               >
                 {sev}
               </span>
-              {verification && (
-                <span
-                  className={cn(
-                    "ml-auto rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider",
-                    verification === "verified" ? "bg-emerald-50 text-emerald-700" : verification === "flagged" ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-700",
-                  )}
-                >
-                  {verification}
-                </span>
-              )}
             </div>
-            <p className="mt-2.5 text-[13.5px] font-bold leading-snug text-slate-800">
-              {ev.emoji} {result?.title}
-            </p>
+
+            {/* description row */}
+            <div className="mt-3 space-y-2 border-t border-slate-100 pt-2.5">
+              <div className="flex items-start gap-2">
+                <span className="mt-px text-[13px]" aria-hidden>
+                  📝
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Description · BERT{ai?.typeSource === "lexicon" ? " + lexicon" : ""}
+                  </p>
+                  <p className="text-[11.5px] font-bold leading-snug text-slate-700">
+                    {ev.emoji} {ev.label}
+                    {ai?.bert && <span className="font-semibold text-slate-500"> · read as {ai.textSeverity ?? ai.bert.severityLabel} ({(ai.bert.typeConfidence * 100).toFixed(0)}% type conf.)</span>}
+                  </p>
+                  <p className="text-[10px] font-semibold text-slate-400">text score {ai?.textScore?.toFixed(2) ?? "—"}</p>
+                </div>
+              </div>
+
+              {/* photo row */}
+              <div className="flex items-start gap-2">
+                <span className="mt-px text-[13px]" aria-hidden>
+                  📷
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Photo · YOLO</p>
+                  {ai?.yolo && ai.yolo.objects.length > 0 ? (
+                    <>
+                      <p className="text-[11.5px] font-bold leading-snug text-slate-700">
+                        {ai.yolo.objects
+                          .slice(0, 4)
+                          .map((o) => `${o.count} ${o.count > 1 ? o.label + "s" : o.label}`)
+                          .join(" · ")}
+                      </p>
+                      <p className="text-[10px] font-semibold text-slate-400">scene score {ai.imageScore?.toFixed(2) ?? "—"} · can escalate, never downgrade</p>
+                    </>
+                  ) : (
+                    <p className="text-[11.5px] font-semibold text-slate-400">no photo attached</p>
+                  )}
+                </div>
+                {photo && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photo.preview} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover ring-1 ring-slate-200" />
+                )}
+              </div>
+
+              {/* fusion row */}
+              <div className="flex items-start gap-2">
+                <span className="mt-px text-[13px]" aria-hidden>
+                  ⚖️
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Combined severity</p>
+                  <p className="text-[11.5px] font-bold text-slate-700">
+                    final = max(text{ai?.imageScore != null ? ", photo×0.8" : ""}) → <span style={{ color: ALERT_SEV_COLOR[sev] }}>{score.toFixed(2)}</span> · alerts within{" "}
+                    <span className="underline decoration-dotted">{ai?.radiusKm} km</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* report card */}
+        <div className="mt-3 w-full overflow-hidden rounded-[22px] bg-white shadow-md">
+          <div className="flex items-center gap-2 p-4 pb-2.5">
+            <span className="rounded-full bg-slate-900 px-2.5 py-1 font-mono text-[11px] font-bold tracking-widest text-white">{result?.code}</span>
+            <span
+              className="rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider"
+              style={{ color: ALERT_SEV_COLOR[sev], background: `${ALERT_SEV_COLOR[sev]}1A` }}
+            >
+              {sev}
+            </span>
+            {result?.verification && (
+              <span
+                className={cn(
+                  "ml-auto rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider",
+                  result.verification === "verified" ? "bg-emerald-50 text-emerald-700" : result.verification === "flagged" ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-700",
+                )}
+              >
+                {result.verification}
+              </span>
+            )}
+          </div>
+          <div className="px-4 pb-4">
+            <p className="text-[13.5px] font-bold leading-snug text-slate-800">{result?.title}</p>
             <p className="mt-1 text-[11px] font-semibold text-slate-400">
-              {result?.placeLabel?.replace(/ \(.*\)$/, "") ?? reportArea.label} · just now
+              {ai?.placeLabel?.replace(/ \(.*\)$/, "") ?? result?.fromLabel} · {ai?.detectedAt ? fmtDateTime(new Date(ai.detectedAt)) : "just now"}
             </p>
           </div>
         </div>
 
         <p className="mt-4 text-center text-[11.5px] leading-relaxed text-slate-500">
-          Commuters within <span className="font-bold text-slate-700">{radius} km</span> of{" "}
-          {result?.placeLabel?.replace(/ \(.*\)$/, "") ?? reportArea.label} are being alerted right now — you&apos;ll
-          receive the same advisory on this phone.
+          Commuters within <span className="font-bold text-slate-700">{ai?.radiusKm} km</span> are being alerted right now — you&apos;ll receive the
+          same advisory on this phone.
         </p>
 
         <button
           onClick={() => openOverlay("notifications")}
-          className="mt-5 w-full rounded-2xl bg-[#1A56DB] py-3.5 text-[13.5px] font-bold text-white shadow-lg shadow-blue-900/20 transition active:scale-[0.98]"
+          className="mt-4 w-full rounded-2xl bg-[#1A56DB] py-3.5 text-[13.5px] font-bold text-white shadow-lg shadow-blue-900/20 transition active:scale-[0.98]"
         >
           View my alerts
         </button>
         <div className="mt-2.5 flex w-full gap-2.5">
-          <button
-            onClick={() => {
-              setPhase("form");
-              setType(null);
-              setText("");
-              setResult(null);
-              setSeverity("medium");
-            }}
-            className="flex-1 rounded-2xl bg-slate-100 py-3 text-[12.5px] font-bold text-slate-600 transition active:scale-[0.98]"
-          >
+          <button onClick={reset} className="flex-1 rounded-2xl bg-slate-100 py-3 text-[12.5px] font-bold text-slate-600 transition active:scale-[0.98]">
             Report another
           </button>
           <button onClick={closeOverlay} className="flex-1 rounded-2xl bg-slate-800 py-3 text-[12.5px] font-bold text-white transition active:scale-[0.98]">

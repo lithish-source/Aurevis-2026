@@ -61,6 +61,8 @@ server.log
 *.pid
 # local SQLite database — regenerate with `bun run db:push`
 db/*.db
+# local transformer model weights (BERT + YOLO) — downloaded on first run
+/.models/
 # local backups exported from the sandbox
 download/*.zip
 download/*.bundle

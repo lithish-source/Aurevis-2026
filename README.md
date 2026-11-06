@@ -65,6 +65,48 @@ Each report builds a three-line advisory:
 - 🚇 **Metro alternative** — nearest CMRL stations with distance; if a station is within 4.5 km, *"boarding from X station will be faster"*; if the incident *is* a transit disruption, the advice flips to buses/suburban rail
 - 💡 **Extra guidance** — realistic time buffers and pre-travel checks
 
+## Citizen reports: on-server BERT + YOLO (₹0, no API keys)
+
+"See something? Report it" runs two real transformer models **on the server** via
+[transformers.js](https://huggingface.co/docs/transformers.js) + ONNX Runtime CPU —
+no GPU, no paid APIs:
+
+```
+Commuter files a report in the app
+        │  auto-attached: GPS fix → nearest gazetteer place, date/time
+        │  optional photo (client-resized to 640 px JPEG)
+        ▼
+POST /api/citizen/report
+        │
+        ├─► 📝 BERT — Xenova/distilbert-base-uncased-mnli (DistilBERT-MNLI)
+        │       zero-shot over the description:
+        │       pass 1 → event type, pass 2 → severity distribution
+        │       (ensemble: the domain lexicon wins when it fires,
+        │        BERT is the semantic fallback + severity scorer)
+        │
+        ├─► 📷 YOLO — Xenova/yolos-tiny object detection on the photo:
+        │       cars / trucks / buses / two-wheelers / people counts
+        │       → scene-density severity score
+        │
+        ▼
+Severity fusion: final = max(textScore, imageScore × 0.8)
+        │         photo evidence can ESCALATE, never downgrade;
+        │         "critical" is reachable only through the description
+        ▼
+same pipeline as social posts ──► trust → IncidentReport
+        → geo-targeted notification → CUMTA console → "All clear"
+```
+
+- **Auto-detection**: location via `navigator.geolocation` (reverse-geocoded to the
+  nearest known place, e.g. "Porur Junction · ±24 m"), date/time stamped at submit.
+  GPS denied → falls back to the selected demo area.
+- **Scores travel with the report**: the commuter sees the BERT read, the YOLO
+  object list and the combined score on the result screen; the full breakdown is
+  persisted in `SocialPost.nlpMeta.ai`.
+- **Graceful degradation**: BERT down → lexicon-only scoring; YOLO down / no photo
+  → text-only scoring. First request downloads the q8 ONNX weights (~90 MB) into
+  `.models/` (gitignored), then loads from disk in ~1–3 s.
+
 ## Replay scenarios
 
 | Scenario | Posts | Story |
