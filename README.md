@@ -51,11 +51,11 @@ Admin resolves ──► "✅ All clear" pushed to the same area
 | Severity | Alert radius | Who gets it |
 |---|---|---|
 | low | 3 km | immediate neighbourhood |
-| medium | 5 km | nearby areas |
-| high | 8 km | e.g. a user in Ramapuram (~8.4 km) just misses it |
-| critical | 12 km | escalation — now that same user is notified |
+| medium | 6 km | nearby areas |
+| high | 10 km | covers the affected corridor — e.g. a user in Ramapuram (~9 km from Poonamallee) is alerted |
+| critical | 14 km | escalation — city-wide awareness for major events |
 
-Escalations (a high-impact official/News post absorbed into an existing report) re-notify at the wider radius, so the demo shows a Ramapuram user receiving the *critical* follow-up to an incident they never got the *high* alert for.
+Escalations (a high-impact official/News post absorbed into an existing report) re-notify at the wider radius. Reports that exist **outside your alert zone** are never silent: the notifications overlay lists them under "Also happening in Chennai" with the distance and a Preview button, so the geo-targeting is visible rather than reports mysteriously "missing".
 
 ### The commuter advisory engine
 
@@ -103,7 +103,7 @@ bun run dev            # → http://localhost:3000
 1. Open **http://localhost:3000** → the citizen phone app boots (user is in *Ramapuram*).
 2. Hit **🛡 Admin Console** (top toggle) → *Social data stream* → scenario **Poonamallee chaos**, speed **120×** → **▶ Start stream**.
 3. Watch reports **pop up live** in the feed (date · time · place · severity · LLM summary · trust · advisory).
-4. Toggle back to **📱 Citizen App** → push-style toasts arrive for incidents near Ramapuram; the bell and home banner light up. Open the bell → full advisory card (🚌 / 🚇 / 💡). Switch the demo area to *T Nagar* (~16 km away) → *"All calm around T Nagar"* — geo-targeting working.
+4. Toggle back to **📱 Citizen App** → push-style toasts arrive for incidents near Ramapuram; the bell and home banner light up. Open the bell → full advisory card (🚌 / 🚇 / 💡), plus an **"Also happening in Chennai"** strip showing farther incidents with their distance. Switch the demo area to *T Nagar* (~15 km away) → far fewer alerts — geo-targeting working.
 5. Back in **Admin** → pick a report → **Mark resolved** → add a resolution note → **Confirm**.
 6. Back to the **phone** → *"✅ ALL CLEAR — …your resolution note…"* arrives for the same area.
 

@@ -4,12 +4,23 @@
 // Notifications overlay — full list of geo-targeted incident alerts for the
 // user's area, with the transport advisory (MTC impact + Metro alternative +
 // other options) spelled out.
+//
+// Geo-targeting means you only receive incidents within the severity radius
+// of your area — so reports further away are shown in a separate "Also
+// happening in Chennai" section (with the distance + why they didn't alert),
+// instead of silently missing.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/lib/app-store";
 import { useAlerts, DEMO_AREAS } from "@/components/app/AlertsCenter";
-import { ALERT_EVENT_META, ALERT_SEV_COLOR, type CitizenAlert } from "@/lib/alerts";
+import {
+  ALERT_EVENT_META,
+  ALERT_SEV_COLOR,
+  SEVERITY_RADIUS_KM,
+  distanceKm,
+  type CitizenAlert,
+} from "@/lib/alerts";
 
 function timeAgo(iso: string): string {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -29,11 +40,12 @@ function fmtDateTime(iso: string): string {
   });
 }
 
-function AlertCard({ alert }: { alert: CitizenAlert }) {
+function AlertCard({ alert, userPos }: { alert: CitizenAlert; userPos: { lat: number; lon: number } }) {
   const sev = alert.meta?.severity ?? "medium";
   const ev = ALERT_EVENT_META[alert.meta?.eventType ?? "other"] ?? ALERT_EVENT_META.other;
   const cleared = alert.kind === "cleared";
   const advisory = alert.meta?.advisory;
+  const away = distanceKm(userPos, { lat: alert.lat, lon: alert.lon });
 
   return (
     <article
@@ -69,7 +81,7 @@ function AlertCard({ alert }: { alert: CitizenAlert }) {
             </div>
             <h3 className="mt-1 text-[13.5px] font-bold leading-snug text-slate-800">{alert.headline}</h3>
             <p className="mt-0.5 text-[10px] font-semibold text-slate-400">
-              {fmtDateTime(alert.createdAt)} · {alert.areaLabel.replace(/ \(.*\)$/, "")} · within {alert.radiusKm} km of you
+              {fmtDateTime(alert.createdAt)} · {alert.areaLabel.replace(/ \(.*\)$/, "")} · ~{away.toFixed(1)} km away
             </p>
           </div>
         </div>
@@ -98,11 +110,64 @@ function AlertCard({ alert }: { alert: CitizenAlert }) {
   );
 }
 
+// ── out-of-range report row ("why didn't I get this one?") ──────────────────
+
+type ReportLite = {
+  id: string;
+  title: string;
+  eventType: string;
+  severity: string;
+  placeLabel: string;
+  lat: number;
+  lon: number;
+  status: string;
+  openedAt: string;
+};
+
+function OtherIncidentRow({
+  report,
+  away,
+  onPreview,
+}: {
+  report: ReportLite;
+  away: number;
+  onPreview: () => void;
+}) {
+  const ev = ALERT_EVENT_META[report.eventType] ?? ALERT_EVENT_META.other;
+  const radius = SEVERITY_RADIUS_KM[report.severity] ?? 6;
+  return (
+    <div className="flex items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-2.5">
+      <span
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[15px]"
+        style={{ background: `${ALERT_SEV_COLOR[report.severity] ?? "#C77E12"}14` }}
+        aria-hidden
+      >
+        {ev.emoji}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[11.5px] font-bold leading-snug text-slate-700">{report.title}</p>
+        <p className="mt-0.5 text-[9.5px] font-semibold leading-snug text-slate-400">
+          {report.placeLabel.replace(/ \(.*\)$/, "")} · ~{away.toFixed(1)} km away ·{" "}
+          <span className="text-slate-500">beyond your {radius} km alert zone</span>
+        </p>
+      </div>
+      <button
+        onClick={onPreview}
+        className="shrink-0 rounded-full bg-[#1A2B49]/8 px-2.5 py-1.5 text-[9px] font-extrabold uppercase tracking-wide text-[#1A2B49] transition active:scale-95"
+        aria-label={`Preview alerts near ${report.placeLabel.replace(/ \(.*\)$/, "")}`}
+      >
+        Preview
+      </button>
+    </div>
+  );
+}
+
 export function NotificationsOverlay() {
   const { closeOverlay } = useApp();
   const { alerts, unread, markAllRead, area, setArea } = useAlerts();
   const listRef = useRef<HTMLDivElement>(null);
   const [marking, setMarking] = useState(false);
+  const [reports, setReports] = useState<ReportLite[]>([]);
 
   // auto-mark-as-read a few seconds after the overlay is opened
   useEffect(() => {
@@ -118,6 +183,48 @@ export function NotificationsOverlay() {
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0 });
   }, [alerts.length]);
+
+  // open incidents across the city (for the "Also happening" section —
+  // these exist but are outside your alert zones)
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const r = await fetch("/api/reports?limit=60", { cache: "no-store" });
+        if (!r.ok) return;
+        const data = (await r.json()) as { reports: ReportLite[] };
+        if (alive) setReports(data.reports);
+      } catch {
+        /* keep last */
+      }
+    };
+    void load();
+    const t = setInterval(load, 12000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, []);
+
+  // incidents you did NOT receive an alert for (different place, beyond the
+  // severity radius of your area) — shown with the distance so geo-targeting
+  // is visible instead of reports silently "missing"
+  const others = useMemo(() => {
+    const got = new Set(alerts.map((a) => a.reportId));
+    return reports
+      .filter((r) => r.status === "open" && !got.has(r.id))
+      .map((r) => ({ report: r, away: distanceKm(area, { lat: r.lat, lon: r.lon }) }))
+      .filter(({ report, away }) => away > (SEVERITY_RADIUS_KM[report.severity] ?? 6))
+      .sort((a, b) => a.away - b.away)
+      .slice(0, 6);
+  }, [reports, alerts, area]);
+
+  const previewAt = (r: ReportLite) => {
+    const nearest = DEMO_AREAS.map((d) => ({ d, km: distanceKm(d, { lat: r.lat, lon: r.lon }) })).sort(
+      (a, b) => a.km - b.km,
+    )[0];
+    if (nearest && nearest.km <= 6) setArea(nearest.d);
+  };
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-[#F1F0F4] animate-[sheetin_0.32s_cubic-bezier(0.22,1,0.36,1)]">
@@ -167,18 +274,57 @@ export function NotificationsOverlay() {
 
       <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 pb-6">
         {alerts.length === 0 ? (
-          <div className="mt-16 flex flex-col items-center px-8 text-center">
+          <div className="mt-10 flex flex-col items-center px-6 text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-[28px]" aria-hidden>
-              🔔
+              {others.length > 0 ? "📍" : "🔔"}
             </span>
-            <p className="mt-4 text-[14px] font-bold text-slate-700">All calm around {area.label}</p>
+            <p className="mt-4 text-[14px] font-bold text-slate-700">
+              {others.length > 0 ? `No alerts for ${area.label} right now` : `All calm around ${area.label}`}
+            </p>
             <p className="mt-1 text-[12px] leading-relaxed text-slate-400">
-              When the city detects a traffic, flood or transit issue near you, you&apos;ll get a notification here with the best way
-              to travel — including whether to switch to the Metro.
+              {others.length > 0 ? (
+                <>
+                  {others.length} incident{others.length > 1 ? "s are" : " is"} active elsewhere in the city — outside your
+                  alert zone. Switch your area above (or preview below) to see how nearby commuters are being alerted.
+                </>
+              ) : (
+                <>
+                  When the city detects a traffic, flood or transit issue near you, you&apos;ll get a notification here with the
+                  best way to travel — including whether to switch to the Metro.
+                </>
+              )}
             </p>
           </div>
         ) : (
-          alerts.map((a) => <AlertCard key={a.id} alert={a} />)
+          alerts.map((a) => <AlertCard key={a.id} alert={a} userPos={area} />)
+        )}
+
+        {/* out-of-range incidents — the geo-targeting made visible */}
+        {others.length > 0 && (
+          <section aria-label="Also happening in Chennai" className="pt-1">
+            <div className="flex items-center gap-2 px-1">
+              <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                Also happening in Chennai
+              </h2>
+              <span className="rounded-full bg-slate-200/70 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
+                {others.length}
+              </span>
+            </div>
+            <p className="mb-2 mt-1 px-1 text-[9.5px] leading-snug text-slate-400">
+              Outside your alert zone — you won&apos;t be disturbed for these. Tap Preview to see the alerts people near
+              that area are receiving.
+            </p>
+            <div className="space-y-2">
+              {others.map(({ report, away }) => (
+                <OtherIncidentRow
+                  key={report.id}
+                  report={report}
+                  away={away}
+                  onPreview={() => previewAt(report)}
+                />
+              ))}
+            </div>
+          </section>
         )}
       </div>
     </div>

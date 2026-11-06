@@ -19,15 +19,18 @@ import ZAI from "z-ai-web-dev-sdk";
 import { db } from "@/lib/db";
 import { dualWrite } from "@/lib/report-server";
 import { GAZETTEER, distanceKm } from "@/lib/social/gazetteer";
-import type { Advisory } from "@/lib/alerts";
+import { SEVERITY_RADIUS_KM as SEVERITY_RADIUS, type Advisory } from "@/lib/alerts";
 
 // ── constants ────────────────────────────────────────────────────────────────
 
 const SEVERITY_RANK: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 const VERIF_RANK: Record<string, number> = { flagged: 0, unverified: 1, verified: 2 };
 
-/** notification radius per severity (km) */
-export const SEVERITY_RADIUS: Record<string, number> = { low: 3, medium: 5, high: 8, critical: 12 };
+/** notification radius per severity (km) — widened after field testing:
+ *  the demo user in Ramapuram sits ~9 km from Poonamallee, so an 8 km
+ *  "high" radius hid the main story. 3/6/10/14 keeps a clear near/far
+ *  contrast while covering the whole affected corridor. */
+export { SEVERITY_RADIUS };
 
 const REPORT_CLUSTER_KM = 2.5;
 /** how long (scenario minutes) an open report keeps absorbing new posts */
