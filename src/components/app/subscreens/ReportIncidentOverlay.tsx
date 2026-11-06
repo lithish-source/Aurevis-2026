@@ -16,7 +16,7 @@
 // incident report → geo-targeted notification → CUMTA console. The result
 // screen shows the commuter exactly what the AI understood and scored.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/lib/app-store";
 import { useAlerts, DEMO_AREAS } from "@/components/app/AlertsCenter";
@@ -124,18 +124,23 @@ export function ReportIncidentOverlay() {
   const [photo, setPhoto] = useState<PhotoState | null>(null);
   const [result, setResult] = useState<ReportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loc, setLoc] = useState<LocState>({ mode: "detecting" });
+  const [loc, setLoc] = useState<LocState>(() =>
+    // geolocation support is an environment constant — decide the initial
+    // mode at render time so the mount effect never sets state synchronously
+    typeof navigator === "undefined" || !navigator.geolocation
+      ? { mode: "fallback", area: { label: area.label, lat: area.lat, lon: area.lon } }
+      : { mode: "detecting" },
+  );
   const [now, setNow] = useState(() => new Date());
   const [step, setStep] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // ── auto-detect location (GPS → nearest place; demo area as fallback) ────
-  const detectLocation = () => {
-    setLoc({ mode: "detecting" });
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setLoc({ mode: "fallback", area: { label: area.label, lat: area.lat, lon: area.lon } });
-      return;
-    }
+  // `locate` only starts the async geolocation request (all setState lives in
+  // its callbacks), so it is safe to call from an effect; `detectLocation`
+  // adds the synchronous "detecting" reset for the retry button handler.
+  const locate = useCallback(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude, accuracy } = pos.coords;
@@ -147,12 +152,16 @@ export function ReportIncidentOverlay() {
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 },
     );
+  }, [area.label, area.lat, area.lon]);
+
+  const detectLocation = () => {
+    setLoc({ mode: "detecting" });
+    locate();
   };
 
   useEffect(() => {
-    detectLocation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    locate();
+  }, [locate]);
 
   // live clock — the date/time is auto-captured with the report
   useEffect(() => {
@@ -176,16 +185,18 @@ export function ReportIncidentOverlay() {
     [photo],
   );
 
-  // advance the "analysing" animation while the request is in flight
+  // advance the "analysing" animation while the request is in flight.
+  // the step counter is reset in submit() (event handler) — effects must
+  // not set state synchronously on phase change.
   useEffect(() => {
     if (phase !== "sending") return;
-    setStep(0);
     const t = setInterval(() => setStep((s) => Math.min(s + 1, steps.length - 1)), 1700);
     return () => clearInterval(t);
   }, [phase, steps.length]);
 
   const submit = async () => {
     if (!ready || !coords) return;
+    setStep(0);
     setPhase("sending");
     setError(null);
     try {
@@ -353,7 +364,6 @@ export function ReportIncidentOverlay() {
             <h2 className="mb-2 text-[13px] font-bold text-slate-800">Add a photo <span className="font-semibold text-slate-400">(optional)</span></h2>
             {photo ? (
               <div className="relative overflow-hidden rounded-[18px] border border-slate-200">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={photo.preview} alt="Attached report photo" className="max-h-52 w-full object-cover" />
                 <div className="flex items-center justify-between bg-slate-900/85 px-3 py-1.5 backdrop-blur">
                   <span className="text-[9.5px] font-bold text-white/90">YOLO will scan this for vehicles &amp; people</span>
@@ -429,7 +439,6 @@ export function ReportIncidentOverlay() {
         <div className="flex flex-col items-center px-5 pb-8 pt-6">
           <div className="flex w-full items-center gap-2.5 rounded-[18px] border border-slate-200 bg-white px-3.5 py-2.5">
             {photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img src={photo.preview} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-slate-200" />
             ) : (
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[15px]" aria-hidden>
@@ -570,7 +579,6 @@ export function ReportIncidentOverlay() {
                   )}
                 </div>
                 {photo && (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={photo.preview} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover ring-1 ring-slate-200" />
                 )}
               </div>

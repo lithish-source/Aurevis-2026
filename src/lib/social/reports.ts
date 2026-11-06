@@ -21,6 +21,20 @@ import { dualWrite } from "@/lib/report-server";
 import { GAZETTEER, distanceKm } from "@/lib/social/gazetteer";
 import { SEVERITY_RADIUS_KM as SEVERITY_RADIUS, type Advisory } from "@/lib/alerts";
 
+/** Prisma unique-constraint violation (P2002), optionally on a specific field.
+ *  Used to make report/notification creation retry- or skip-safe when two
+ *  concurrent writers race (e.g. the replay engine absorbing a scenario post
+ *  while a citizen report arrives). */
+function isUniqueViolation(e: unknown, field?: string): boolean {
+  if (!e || typeof e !== "object") return false;
+  const err = e as { code?: unknown; meta?: { target?: unknown } };
+  if (err.code !== "P2002") return false;
+  if (!field) return true;
+  const target = err.meta?.target;
+  const fields = Array.isArray(target) ? target : [target];
+  return fields.includes(field);
+}
+
 // ── constants ────────────────────────────────────────────────────────────────
 
 const SEVERITY_RANK: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
@@ -205,19 +219,32 @@ async function pushNotification(input: {
   body: string;
   meta: Record<string, unknown>;
 }): Promise<void> {
-  const { local } = await dualWrite<unknown & { id: string }>("userNotification", "user_notifications", {
-    reportId: input.reportId,
-    code: input.code,
-    kind: input.kind,
-    areaLabel: input.areaLabel,
-    lat: input.lat,
-    lon: input.lon,
-    radiusKm: input.radiusKm,
-    headline: input.headline,
-    body: input.body,
-    meta: JSON.stringify(input.meta),
-  });
-  void local;
+  let sent = true;
+  try {
+    const { local } = await dualWrite<unknown & { id: string }>("userNotification", "user_notifications", {
+      reportId: input.reportId,
+      code: input.code,
+      kind: input.kind,
+      areaLabel: input.areaLabel,
+      lat: input.lat,
+      lon: input.lon,
+      radiusKm: input.radiusKm,
+      headline: input.headline,
+      body: input.body,
+      meta: JSON.stringify(input.meta),
+    });
+    void local;
+  } catch (e) {
+    // `code` is the dedupe key — a duplicate means this notification was
+    // already recorded (e.g. two posts escalated the same report to the same
+    // severity concurrently). Skip instead of failing the whole absorb.
+    if (isUniqueViolation(e, "code")) {
+      sent = false;
+    } else {
+      throw e;
+    }
+  }
+  if (!sent) return;
   await db.incidentReport
     .update({ where: { id: input.reportId }, data: { notificationsSent: { increment: 1 } } })
     .catch(() => undefined);
@@ -253,8 +280,16 @@ type PostRow = {
 };
 
 async function nextReportCode(): Promise<string> {
-  const count = await db.incidentReport.count();
-  return `RPT-${String(count + 1).padStart(4, "0")}`;
+  // Use the highest numeric suffix, NOT count()+1: count() re-issues a used
+  // code after any report row is deleted, and two concurrent writers can
+  // still read the same max — callers retry on the (rare) remaining conflict.
+  const rows = (await db.incidentReport.findMany({ select: { code: true } })) as unknown as Array<{ code: string }>;
+  let max = 0;
+  for (const r of rows) {
+    const m = /^RPT-(\d+)$/.exec(r.code);
+    if (m) max = Math.max(max, Number.parseInt(m[1], 10));
+  }
+  return `RPT-${String(max + 1).padStart(4, "0")}`;
 }
 
 /**
@@ -358,9 +393,7 @@ export async function absorbIntoReports(post: PostRow): Promise<ReportOutcome[]>
   const digest = (await llmDigest([{ text: post.text, handle: post.authorHandle, source: post.source }], post.eventType, post.placeLabel)) ??
     heuristicDigest([{ text: post.text, place: post.placeLabel }], post.eventType, post.placeLabel);
 
-  const code = await nextReportCode();
-  const { local } = await dualWrite<unknown & { id: string; code: string; title: string }>("incidentReport", "incident_reports", {
-    code,
+  const createBase = {
     eventType: post.eventType,
     severity,
     placeLabel: post.placeLabel,
@@ -376,8 +409,34 @@ export async function absorbIntoReports(post: PostRow): Promise<ReportOutcome[]>
     verification,
     scenario: post.scenario ?? null,
     postIds: JSON.stringify([post.id]),
-  });
-  const report = local.row;
+  };
+
+  // The `code` column is unique. If a concurrent writer (replay engine,
+  // another citizen report) grabbed our code between the read and the
+  // insert, P2002 is thrown — regenerate and retry instead of losing the
+  // report.
+  let report: { id: string; code: string; title: string } | null = null;
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const code = await nextReportCode();
+    try {
+      const { local } = await dualWrite<unknown & { id: string; code: string; title: string }>("incidentReport", "incident_reports", {
+        ...createBase,
+        code,
+      });
+      report = local.row;
+      break;
+    } catch (e) {
+      if (isUniqueViolation(e, "code")) {
+        lastErr = e;
+        continue;
+      }
+      throw e;
+    }
+  }
+  if (!report) {
+    throw lastErr ?? new Error("could not allocate a unique incident-report code");
+  }
 
   await db.socialPost.update({ where: { id: post.id }, data: { reportId: report.id } }).catch(() => undefined);
 
