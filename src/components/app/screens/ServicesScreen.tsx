@@ -75,6 +75,14 @@ function ServiceIcon({ name }: { name: string }) {
           <path d="M10 3h4v6h6v4h-6v8h-4v-8H4V9h6V3z" />
         </svg>
       );
+    case "database":
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+        </svg>
+      );
     default:
       return (
         <svg viewBox="0 0 24 24" className={common} fill="currentColor" aria-hidden>
@@ -130,8 +138,12 @@ export function ServicesScreen() {
           <button
             key={s.name}
             onClick={() => {
-              setSelectedService(s.name);
-              openOverlay("serviceDetail");
+              if (s.name === "CUMTA Datasets") {
+                openOverlay("datasets");
+              } else {
+                setSelectedService(s.name);
+                openOverlay("serviceDetail");
+              }
             }}
             className="group relative flex flex-col items-center gap-2 rounded-2xl p-1 transition active:scale-95"
           >

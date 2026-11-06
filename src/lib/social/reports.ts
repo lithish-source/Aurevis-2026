@@ -275,6 +275,7 @@ type PostRow = {
   placeLabel: string | null;
   trustScore: number | null;
   verification: string | null;
+  nlpMeta?: string | null;
   scenario: string | null;
   timeScale: number;
 };
@@ -304,9 +305,6 @@ export async function absorbIntoReports(post: PostRow): Promise<ReportOutcome[]>
     return [{ reportId: "", code: "", action: "ignored", title: "" }];
   }
   if (post.lat == null || post.lon == null || !post.placeLabel) {
-    return [{ reportId: "", code: "", action: "ignored", title: "" }];
-  }
-  if (post.verification === "flagged") {
     return [{ reportId: "", code: "", action: "ignored", title: "" }];
   }
 
@@ -342,9 +340,22 @@ export async function absorbIntoReports(post: PostRow): Promise<ReportOutcome[]>
   const trust = post.trustScore ?? 0;
   const verification = post.verification ?? "unverified";
 
+  // Check for AI mismatch or discrepancy metadata
+  let mismatchReason: string | null = null;
+  if (post.nlpMeta) {
+    try {
+      const parsedMeta = JSON.parse(post.nlpMeta) as { ai?: { mismatch?: { detected?: boolean; reason?: string } } };
+      if (parsedMeta?.ai?.mismatch?.detected) {
+        mismatchReason = parsedMeta.ai.mismatch.reason ?? null;
+      }
+    } catch {}
+  }
+
   // ── 2a) update the existing report ─────────────────────────────────────
   if (match) {
+    // Flagged posts should never escalate an ongoing incident's severity or trigger panic
     const escalated =
+      verification !== "flagged" &&
       (SEVERITY_RANK[severity] ?? 0) > (SEVERITY_RANK[match.severity] ?? 0) &&
       (SEVERITY_RANK[severity] ?? 0) >= 2;
 
@@ -393,14 +404,20 @@ export async function absorbIntoReports(post: PostRow): Promise<ReportOutcome[]>
   const digest = (await llmDigest([{ text: post.text, handle: post.authorHandle, source: post.source }], post.eventType, post.placeLabel)) ??
     heuristicDigest([{ text: post.text, place: post.placeLabel }], post.eventType, post.placeLabel);
 
+  const reportTitle = verification === "flagged" ? `[FLAGGED] ${digest.title}` : digest.title;
+  const reportSummary =
+    verification === "flagged"
+      ? `${digest.summary}${mismatchReason ? `\n\n⚠️ Discrepancy Flag: ${mismatchReason}` : "\n\n⚠️ Flagged for Operations Review: Photo and description mismatch detected by AI vision."}`
+      : digest.summary;
+
   const createBase = {
     eventType: post.eventType,
     severity,
     placeLabel: post.placeLabel,
     lat: post.lat,
     lon: post.lon,
-    title: digest.title,
-    summary: digest.summary,
+    title: reportTitle,
+    summary: reportSummary,
     advisory: JSON.stringify(advisory),
     status: "open",
     lastScenarioAt: post.postedAt,
@@ -440,18 +457,20 @@ export async function absorbIntoReports(post: PostRow): Promise<ReportOutcome[]>
 
   await db.socialPost.update({ where: { id: post.id }, data: { reportId: report.id } }).catch(() => undefined);
 
-  await pushNotification({
-    reportId: report.id,
-    code: `${report.id}:incident`,
-    kind: "incident",
-    areaLabel: post.placeLabel,
-    lat: post.lat,
-    lon: post.lon,
-    radiusKm: SEVERITY_RADIUS[severity] ?? 5,
-    headline: `${digest.title} — buses via ${post.placeLabel.replace(/ \(.*\)$/, "")} may be affected`,
-    body: `${digest.summary}\n\n${advisory.busNote} ${advisory.metroNote} ${advisory.extra}`,
-    meta: { eventType: post.eventType, severity, advisory },
-  });
+  if (verification !== "flagged") {
+    await pushNotification({
+      reportId: report.id,
+      code: `${report.id}:incident`,
+      kind: "incident",
+      areaLabel: post.placeLabel,
+      lat: post.lat,
+      lon: post.lon,
+      radiusKm: SEVERITY_RADIUS[severity] ?? 5,
+      headline: `${digest.title} — buses via ${post.placeLabel.replace(/ \(.*\)$/, "")} may be affected`,
+      body: `${digest.summary}\n\n${advisory.busNote} ${advisory.metroNote} ${advisory.extra}`,
+      meta: { eventType: post.eventType, severity, advisory },
+    });
+  }
 
   outcomes.push({ reportId: report.id, code: report.code, action: "created", title: report.title });
   return outcomes;

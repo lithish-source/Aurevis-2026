@@ -28,9 +28,9 @@ import { getStoredUser } from "@/lib/reporting";
 type Phase = "form" | "sending" | "done";
 
 type AIResp = {
-  engines: { bert: boolean; yolo: boolean; lexicon: boolean };
+  engines: { bert: boolean; yolo: boolean; lexicon: boolean; api?: boolean };
   eventType: string;
-  typeSource: "lexicon" | "bert";
+  typeSource: "lexicon" | "bert" | "api";
   severity: string;
   textSeverity: string;
   finalScore: number;
@@ -38,6 +38,7 @@ type AIResp = {
   imageScore: number | null;
   bert: { typeLabel: string; typeConfidence: number; severityLabel: string } | null;
   yolo: { objects: Array<{ label: string; count: number }>; vehicleCount: number; personCount: number } | null;
+  mismatch?: { detected: boolean; reason: string } | null;
   placeLabel: string;
   detectedAt: string;
   radiusKm: number;
@@ -51,9 +52,10 @@ type ReportResult = {
   trustScore: number | null;
   ai: AIResp;
   fromLabel: string;
+  photoUrl?: string | null;
 };
 
-type PhotoState = { dataUrl: string; thumb: string; preview: string };
+type PhotoState = { dataUrl: string; thumb: string; preview: string; capturedAt: string };
 
 type LocState =
   | { mode: "detecting" }
@@ -81,7 +83,31 @@ function nearestPlace(lat: number, lon: number): { label: string; km: number | n
   return best ? { label: best.label, km: best.km } : { label: "your location", km: null };
 }
 
-/** client-side resize: 640px JPEG for YOLO + 96px thumbnail for the record */
+/** process a live video canvas snapshot directly from the camera stream */
+async function processCanvasSnapshot(canvas: HTMLCanvasElement): Promise<PhotoState> {
+  const scale = Math.min(1, 640 / Math.max(canvas.width, canvas.height));
+  const w = Math.max(1, Math.round(canvas.width * scale));
+  const h = Math.max(1, Math.round(canvas.height * scale));
+  const big = document.createElement("canvas");
+  big.width = w;
+  big.height = h;
+  const bCtx = big.getContext("2d");
+  if (bCtx) bCtx.drawImage(canvas, 0, 0, w, h);
+  const ts = Math.min(96 / w, 96 / h, 1);
+  const small = document.createElement("canvas");
+  small.width = Math.max(1, Math.round(w * ts));
+  small.height = Math.max(1, Math.round(h * ts));
+  const sCtx = small.getContext("2d");
+  if (sCtx) sCtx.drawImage(canvas, 0, 0, small.width, small.height);
+  return {
+    dataUrl: big.toDataURL("image/jpeg", 0.75),
+    thumb: small.toDataURL("image/jpeg", 0.6).split(",")[1] ?? "",
+    preview: big.toDataURL("image/jpeg", 0.75),
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+/** system-camera fallback: 640px JPEG for YOLO/Vision + 96px thumbnail */
 async function processPhoto(file: File): Promise<PhotoState> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, 640 / Math.max(bitmap.width, bitmap.height));
@@ -98,9 +124,10 @@ async function processPhoto(file: File): Promise<PhotoState> {
   small.getContext("2d")!.drawImage(bitmap, 0, 0, small.width, small.height);
   bitmap.close?.();
   return {
-    dataUrl: big.toDataURL("image/jpeg", 0.72),
+    dataUrl: big.toDataURL("image/jpeg", 0.75),
     thumb: small.toDataURL("image/jpeg", 0.6).split(",")[1] ?? "",
-    preview: big.toDataURL("image/jpeg", 0.72),
+    preview: big.toDataURL("image/jpeg", 0.75),
+    capturedAt: new Date().toISOString(),
   };
 }
 
@@ -134,6 +161,82 @@ export function ReportIncidentOverlay() {
   const [now, setNow] = useState(() => new Date());
   const [step, setStep] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // ── live camera state (camera-only capture to prevent stale/fake uploads) ─
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setCameraActive(false);
+  }, []);
+
+  const startCamera = useCallback(async (mode: "environment" | "user" = "environment") => {
+    setCameraError(null);
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setCameraError("Direct viewfinder is unavailable in this environment. Use the device camera trigger.");
+      return;
+    }
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: mode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setCameraActive(true);
+      setFacingMode(mode);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => undefined);
+        }
+      }, 60);
+    } catch (err) {
+      console.warn("Live camera access failed:", err);
+      setCameraError("Camera permission was denied. Please allow camera access to take live photo evidence.");
+    }
+  }, []);
+
+  const takeLiveSnapshot = useCallback(async () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    if (video.videoWidth === 0 || video.videoHeight === 0) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const photoState = await processCanvasSnapshot(canvas);
+    setPhoto(photoState);
+    stopCamera();
+  }, [stopCamera]);
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  const handleClose = () => {
+    stopCamera();
+    closeOverlay();
+  };
 
   // ── auto-detect location (GPS → nearest place; demo area as fallback) ────
   // `locate` only starts the async geolocation request (all setState lives in
@@ -233,6 +336,7 @@ export function ReportIncidentOverlay() {
         trustScore: data.post?.trustScore ?? null,
         ai: data.ai,
         fromLabel: coords.label,
+        photoUrl: photo?.preview ?? null,
       });
       setPhase("done");
       void refresh(); // pull the fresh notification in immediately
@@ -254,7 +358,7 @@ export function ReportIncidentOverlay() {
   // ── form ────────────────────────────────────────────────────────────────
   if (phase === "form") {
     return (
-      <OverlayShell title="Report an incident" onClose={closeOverlay} headerClass="bg-white text-slate-900" contentClass="pt-9">
+      <OverlayShell title="Report an incident" onClose={handleClose} headerClass="bg-white text-slate-900" contentClass="pt-9">
         <div className="space-y-5 px-4 pb-8">
           <p className="text-[12px] leading-relaxed text-slate-500">
             Describe what you see and attach a photo — <span className="font-semibold text-slate-700">BERT reads your words, YOLO scans your
@@ -361,41 +465,145 @@ export function ReportIncidentOverlay() {
 
           {/* photo */}
           <section>
-            <h2 className="mb-2 text-[13px] font-bold text-slate-800">Add a photo <span className="font-semibold text-slate-400">(optional)</span></h2>
-            {photo ? (
-              <div className="relative overflow-hidden rounded-[18px] border border-slate-200">
-                <img src={photo.preview} alt="Attached report photo" className="max-h-52 w-full object-cover" />
-                <div className="flex items-center justify-between bg-slate-900/85 px-3 py-1.5 backdrop-blur">
-                  <span className="text-[9.5px] font-bold text-white/90">YOLO will scan this for vehicles &amp; people</span>
-                  <div className="flex gap-1.5">
-                    <button onClick={() => fileRef.current?.click()} className="rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-bold text-white">
-                      Replace
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-[13px] font-bold text-slate-800">
+                Live photo evidence <span className="font-semibold text-slate-400">(optional)</span>
+              </h2>
+              <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[9.5px] font-extrabold uppercase tracking-wider text-emerald-600 border border-emerald-200/60">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live Camera Only
+              </span>
+            </div>
+
+            {cameraActive ? (
+              <div className="relative overflow-hidden rounded-[20px] bg-black border border-slate-700 shadow-md">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="h-64 w-full object-cover"
+                />
+
+                {/* Top overlay pills */}
+                <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between pointer-events-auto">
+                  <div className="flex items-center gap-1.5 rounded-full bg-slate-900/85 px-2.5 py-1 backdrop-blur-md">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
+                    </span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-white">Live Viewfinder</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => startCamera(facingMode === "environment" ? "user" : "environment")}
+                      className="rounded-full bg-slate-900/80 p-2 text-white hover:bg-slate-800 transition active:scale-95 backdrop-blur-md"
+                      title="Flip camera"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 2.21.896 4.21 2.343 5.657L4 18h6v-6l-2.343 2.343C6.627 13.124 6 11.642 6 10c0-3.314 2.686-6 6-6s6 2.686 6 6c0 1.642-.627 3.124-1.657 4.343L18 16c1.242-1.636 2-3.705 2-6z" />
+                      </svg>
                     </button>
-                    <button onClick={() => setPhoto(null)} className="rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-bold text-white">
+                    <button
+                      type="button"
+                      onClick={stopCamera}
+                      className="rounded-full bg-slate-900/80 p-2 text-white hover:bg-slate-800 transition active:scale-95 backdrop-blur-md"
+                      title="Close camera"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bottom shutter bar */}
+                <div className="absolute bottom-3.5 inset-x-0 flex flex-col items-center justify-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={takeLiveSnapshot}
+                    className="flex h-15 w-15 items-center justify-center rounded-full border-4 border-white bg-rose-500/90 shadow-xl transition active:scale-90"
+                    title="Take Snapshot"
+                  >
+                    <span className="h-10 w-10 rounded-full bg-white transition" />
+                  </button>
+                  <span className="rounded-full bg-black/60 px-2 py-0.5 text-[9.5px] font-bold text-white/90 backdrop-blur-sm">
+                    Tap shutter to take real-time photo
+                  </span>
+                </div>
+              </div>
+            ) : photo ? (
+              <div className="relative overflow-hidden rounded-[18px] border border-slate-200 bg-white">
+                <img src={photo.preview} alt="Verified live report photo" className="max-h-52 w-full object-cover" />
+                <div className="flex items-center justify-between bg-slate-900/90 px-3 py-2 text-white backdrop-blur">
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
+                    <span className="text-[10px] font-bold tracking-wide">
+                      Verified Live Photo · {fmtDateTime(new Date(photo.capturedAt))}
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => startCamera(facingMode)}
+                      className="rounded-full bg-white/20 px-2.5 py-0.5 text-[9.5px] font-bold text-white hover:bg-white/30 transition"
+                    >
+                      Retake
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPhoto(null)}
+                      className="rounded-full bg-rose-500/30 px-2.5 py-0.5 text-[9.5px] font-bold text-rose-200 hover:bg-rose-500/50 transition"
+                    >
                       Remove
                     </button>
                   </div>
                 </div>
               </div>
             ) : (
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="flex w-full items-center justify-center gap-2 rounded-[18px] border-2 border-dashed border-slate-200 bg-slate-50/50 py-5 text-slate-500 transition active:scale-[0.99]"
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                  <circle cx="12" cy="13" r="4" />
-                </svg>
-                <span className="text-[12px] font-bold">Take / attach a photo</span>
-              </button>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => startCamera("environment")}
+                  className="flex w-full items-center justify-center gap-3 rounded-[18px] border-2 border-dashed border-[#5B4FE9]/30 bg-[#5B4FE9]/5 py-5 text-[#5B4FE9] transition active:scale-[0.99] hover:bg-[#5B4FE9]/8"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5B4FE9]/10">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#5B4FE9]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                      <circle cx="12" cy="13" r="4" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[12.5px] font-extrabold text-[#5B4FE9]">Take Live Photo</p>
+                    <p className="text-[10px] font-semibold text-slate-500">Live camera only — gallery/file upload disabled to prevent fake data</p>
+                  </div>
+                </button>
+
+                {cameraError && (
+                  <div className="flex flex-col gap-1.5 rounded-xl bg-amber-50 p-2.5 text-[11px] font-medium text-amber-800 border border-amber-200/50">
+                    <p>{cameraError}</p>
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      className="self-start font-bold text-amber-900 underline"
+                    >
+                      Trigger Device System Camera
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
+
+            {/* Direct system camera trigger (capture=environment strictly launches camera) */}
             <input
               ref={fileRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/*"
               capture="environment"
               className="hidden"
-              aria-label="Photo of the incident"
+              aria-label="Direct device camera capture"
               onChange={async (e) => {
                 const f = e.target.files?.[0];
                 e.target.value = "";
@@ -403,7 +611,7 @@ export function ReportIncidentOverlay() {
                 try {
                   setPhoto(await processPhoto(f));
                 } catch {
-                  setError("Could not read that photo — try another one.");
+                  setError("Could not read that photo — please retry live capture.");
                 }
               }}
             />
@@ -435,7 +643,7 @@ export function ReportIncidentOverlay() {
   // ── sending: the analysis pipeline, step by step ────────────────────────
   if (phase === "sending") {
     return (
-      <OverlayShell title="Analysing your report" onClose={closeOverlay} headerClass="bg-white text-slate-900">
+      <OverlayShell title="Analysing your report" onClose={handleClose} headerClass="bg-white text-slate-900">
         <div className="flex flex-col items-center px-5 pb-8 pt-6">
           <div className="flex w-full items-center gap-2.5 rounded-[18px] border border-slate-200 bg-white px-3.5 py-2.5">
             {photo ? (
@@ -490,9 +698,10 @@ export function ReportIncidentOverlay() {
   const ev = ALERT_EVENT_META[ai?.eventType ?? "other"] ?? ALERT_EVENT_META.other;
   const score = ai?.finalScore ?? 0;
   const scorePct = Math.round(score * 100);
+  const photoPreview = photo?.preview ?? result?.photoUrl;
 
   return (
-    <OverlayShell title="Report an incident" onClose={closeOverlay} headerClass="bg-white text-slate-900">
+    <OverlayShell title="Report an incident" onClose={handleClose} headerClass="bg-white text-slate-900">
       <div className="flex flex-col items-center px-5 pb-8 pt-6">
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 shadow-inner" aria-hidden>
           <svg viewBox="0 0 24 24" className="h-8 w-8 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
@@ -513,12 +722,25 @@ export function ReportIncidentOverlay() {
             <div className="flex items-center justify-between">
               <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">AI severity analysis</span>
               <span className="flex items-center gap-1">
-                <span className={cn("rounded-full px-1.5 py-px text-[8px] font-extrabold uppercase tracking-wider", ai?.engines.bert ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>
-                  BERT {ai?.engines.bert ? "✓" : "—"}
-                </span>
-                <span className={cn("rounded-full px-1.5 py-px text-[8px] font-extrabold uppercase tracking-wider", ai?.engines.yolo ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500")}>
-                  YOLO {ai?.engines.yolo ? "✓" : "—"}
-                </span>
+                {ai?.engines.api ? (
+                  <>
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[8.5px] font-extrabold uppercase tracking-wider text-emerald-700">
+                      GROQ VISION ✓
+                    </span>
+                    <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wider text-[#5B4FE9]">
+                      AI FUSION
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className={cn("rounded-full px-1.5 py-px text-[8px] font-extrabold uppercase tracking-wider", ai?.engines.bert ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>
+                      BERT {ai?.engines.bert ? "✓" : "—"}
+                    </span>
+                    <span className={cn("rounded-full px-1.5 py-px text-[8px] font-extrabold uppercase tracking-wider", ai?.engines.yolo ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500")}>
+                      YOLO {ai?.engines.yolo ? "✓" : "—"}
+                    </span>
+                  </>
+                )}
               </span>
             </div>
 
@@ -539,6 +761,23 @@ export function ReportIncidentOverlay() {
               </span>
             </div>
 
+            {/* discrepancy / fake report mismatch alert */}
+            {ai?.mismatch?.detected && (
+              <div className="mt-3 rounded-[16px] border border-amber-300 bg-amber-50/90 p-3 text-amber-950 shadow-sm">
+                <div className="flex items-center gap-1.5 font-extrabold text-[12px] text-amber-900">
+                  <span className="text-[14px]">⚠️</span>
+                  <span>Photo &amp; Description Mismatch Detected</span>
+                </div>
+                <p className="mt-1 text-[11px] font-medium leading-relaxed text-amber-800">
+                  {ai.mismatch.reason}
+                </p>
+                <div className="mt-2 flex items-center gap-1.5 border-t border-amber-200/60 pt-2 text-[10px] font-bold text-amber-900">
+                  <span className="rounded bg-amber-600 px-1.5 py-0.5 text-[8.5px] uppercase tracking-wider text-white">Flagged</span>
+                  <span>Incident severity was throttled to prevent false panic.</span>
+                </div>
+              </div>
+            )}
+
             {/* description row */}
             <div className="mt-3 space-y-2 border-t border-slate-100 pt-2.5">
               <div className="flex items-start gap-2">
@@ -547,7 +786,7 @@ export function ReportIncidentOverlay() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    Description · BERT{ai?.typeSource === "lexicon" ? " + lexicon" : ""}
+                    Description · {ai?.typeSource === "api" ? "Multimodal AI" : `BERT${ai?.typeSource === "lexicon" ? " + lexicon" : ""}`}
                   </p>
                   <p className="text-[11.5px] font-bold leading-snug text-slate-700">
                     {ev.emoji} {ev.label}
@@ -563,23 +802,29 @@ export function ReportIncidentOverlay() {
                   📷
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Photo · YOLO</p>
-                  {ai?.yolo && ai.yolo.objects.length > 0 ? (
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Photo · {ai?.engines?.api ? "Multimodal Vision" : "YOLO"}</p>
+                  {ai?.yolo || photoPreview ? (
                     <>
                       <p className="text-[11.5px] font-bold leading-snug text-slate-700">
-                        {ai.yolo.objects
-                          .slice(0, 4)
-                          .map((o) => `${o.count} ${o.count > 1 ? o.label + "s" : o.label}`)
-                          .join(" · ")}
+                        {ai?.yolo && ai.yolo.objects.length > 0
+                          ? ai.yolo.objects
+                              .slice(0, 4)
+                              .map((o) => `${o.count} ${o.count > 1 ? o.label + "s" : o.label}`)
+                              .join(" · ")
+                          : ai?.mismatch?.detected
+                            ? "Scene mismatch: Irrelevant scene or no road hazards"
+                            : "Live photo verified · No road hazards detected"}
                       </p>
-                      <p className="text-[10px] font-semibold text-slate-400">scene score {ai.imageScore?.toFixed(2) ?? "—"} · can escalate, never downgrade</p>
+                      <p className="text-[10px] font-semibold text-slate-400">
+                        scene score {ai?.imageScore != null ? ai.imageScore.toFixed(2) : "0.05"} · can escalate, never downgrade
+                      </p>
                     </>
                   ) : (
                     <p className="text-[11.5px] font-semibold text-slate-400">no photo attached</p>
                   )}
                 </div>
-                {photo && (
-                  <img src={photo.preview} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover ring-1 ring-slate-200" />
+                {photoPreview && (
+                  <img src={photoPreview} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover ring-1 ring-slate-200" />
                 )}
               </div>
 

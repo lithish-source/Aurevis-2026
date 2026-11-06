@@ -56,7 +56,7 @@ function toSupabaseRow(row: Record<string, unknown>): Record<string, unknown> {
   return out;
 }
 
-export async function dualWrite<T extends { id: string }>(
+export async function dualWrite<T extends { id: string } = { id: string } & Record<string, unknown>>(
   prismaTable:
     | "appUser"
     | "ticketPurchase"

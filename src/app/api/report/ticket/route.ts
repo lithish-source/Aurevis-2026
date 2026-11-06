@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     `${mode === "metro" ? "MTX" : "MTB"}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
   const fare = Number.isFinite(body.fare) ? Number(body.fare) : 0;
 
-  const result = await dualWrite<"ticketPurchase">("ticketPurchase", "ticket_purchases", {
+  const result = await dualWrite("ticketPurchase", "ticket_purchases", {
     ref,
     mode,
     routeNo: body.routeNo?.trim() || null,

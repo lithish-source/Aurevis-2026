@@ -230,8 +230,14 @@ export async function refreshClusterTrust(post: SocialPostRow): Promise<void> {
       hasTimeRef: Boolean(parsed.hasTimeRef),
       neighbors: neighborMeta,
     });
+    const hasMismatch = Boolean(
+      (parsed.ai as { mismatch?: { detected?: boolean } } | undefined)?.mismatch?.detected ||
+      member.verification === "flagged"
+    );
+    const finalScore = hasMismatch ? Math.min(score, 0.15) : score;
+    const finalVerif: VerificationStatus = hasMismatch ? "flagged" : verification;
     const distinctAuthors = new Set(others.map((m) => m.authorHandle ?? "anon")).size;
-    updates.push({ id: member.id, trustScore: score, verification, corroborates: distinctAuthors });
+    updates.push({ id: member.id, trustScore: finalScore, verification: finalVerif, corroborates: distinctAuthors });
   }
 
   for (const u of updates) {

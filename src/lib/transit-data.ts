@@ -7,10 +7,15 @@ export type MetroStation = {
 };
 
 export const METRO_LINE_1: MetroStation[] = [
+  { name: "Wimco Nagar Depot", line: "Blue" },
   { name: "Wimco Nagar", line: "Blue" },
   { name: "Tiruvottriyur", line: "Blue" },
+  { name: "Tiruvottriyur Theradi", line: "Blue" },
+  { name: "Kaladipet", line: "Blue" },
   { name: "Tollgate", line: "Blue" },
+  { name: "New Washermanpet", line: "Blue" },
   { name: "Tondiarpet", line: "Blue" },
+  { name: "Sir Theagaraya College", line: "Blue" },
   { name: "Washermanpet", line: "Blue" },
   { name: "Mannadi", line: "Blue" },
   { name: "High Court", line: "Blue" },
@@ -227,6 +232,7 @@ export type CityService = {
 };
 
 export const CITY_SERVICES: CityService[] = [
+  { name: "CUMTA Datasets", desc: "Open GTFS data", icon: "database", color: "bg-blue-100 text-blue-700", badge: "Open" },
   { name: "Property Tax", desc: "Pay & receipts", icon: "building", color: "bg-rose-100 text-rose-600", badge: "Due" },
   { name: "Water & Sewage", desc: "Metro water bill", icon: "droplet", color: "bg-sky-100 text-sky-600" },
   { name: "Birth Certificate", desc: "Apply & download", icon: "baby", color: "bg-amber-100 text-amber-600" },
@@ -325,18 +331,18 @@ export const BUS_ROUTE_578_GEO: { name: string; lat: number; lon: number; passed
   { name: "Sriperumbudur Bus Stop", lat: 12.9682, lon: 79.952, passed: false },
 ];
 
-/** Metro Blue Line journey (Meenambakkam → Government Estate) coords. */
+/** Metro Blue Line journey (Meenambakkam → Government Estate) coords from CUMTA GTFS. */
 export const METRO_JOURNEY_GEO: { name: string; lat: number; lon: number }[] = [
-  { name: "Meenambakkam", lat: 12.9833, lon: 80.1638 },
-  { name: "Nanganallur Road", lat: 12.9924, lon: 80.1849 },
-  { name: "Alandur", lat: 12.9927, lon: 80.2012 },
-  { name: "Saidapet", lat: 13.0222, lon: 80.2233 },
-  { name: "Nandanam", lat: 13.028, lon: 80.2356 },
-  { name: "Teynampet", lat: 13.0403, lon: 80.2503 },
-  { name: "AG-DMS", lat: 13.0509, lon: 80.2554 },
-  { name: "Thousand Lights", lat: 13.0603, lon: 80.257 },
-  { name: "LIC", lat: 13.0654, lon: 80.2616 },
-  { name: "Government Estate", lat: 13.0675, lon: 80.268 },
+  { name: "Meenambakkam", lat: 12.9877, lon: 80.1764 },
+  { name: "Nanganallur Road", lat: 12.9997, lon: 80.194 },
+  { name: "Alandur", lat: 13.0043, lon: 80.2016 },
+  { name: "Saidapet", lat: 13.0238, lon: 80.2283 },
+  { name: "Nandanam", lat: 13.0315, lon: 80.2407 },
+  { name: "Teynampet", lat: 13.0372, lon: 80.2465 },
+  { name: "AG-DMS", lat: 13.0452, lon: 80.2482 },
+  { name: "Thousand Lights", lat: 13.0585, lon: 80.2587 },
+  { name: "LIC", lat: 13.0647, lon: 80.2663 },
+  { name: "Government Estate", lat: 13.0697, lon: 80.2728 },
 ];
 
 export type ModeCardId = "bus" | "metro" | "train" | "auto" | "taxi";
@@ -390,19 +396,24 @@ export const MAP_BUS_STOPS: MapPin[] = [
 ];
 
 export const MAP_METRO_STATIONS: MapPin[] = [
-  { name: "CMBT", lat: 13.0674, lon: 80.2062 },
-  { name: "Vadapalani", lat: 13.0474, lon: 80.2126 },
-  { name: "Ashok Nagar", lat: 13.0356, lon: 80.2158 },
-  { name: "Ekkattuthangal", lat: 13.0299, lon: 80.2033 },
-  { name: "Guindy", lat: 13.0067, lon: 80.2206 },
-  { name: "St. Thomas Mount", lat: 12.9925, lon: 80.1975 },
+  { name: "CMBT", lat: 13.0684, lon: 80.204 },
+  { name: "Vadapalani", lat: 13.0509, lon: 80.212 },
+  { name: "Ashok Nagar", lat: 13.0354, lon: 80.211 },
+  { name: "Ekkattuthangal", lat: 13.0171, lon: 80.2055 },
+  { name: "Alandur", lat: 13.0043, lon: 80.2016 },
+  { name: "Guindy", lat: 13.0091, lon: 80.2131 },
+  { name: "St. Thomas Mount", lat: 12.9949, lon: 80.1977 },
 ];
 
 export const MAP_RAILWAY_STATIONS: MapPin[] = [
-  { name: "Mambalam", lat: 13.0405, lon: 80.2326 },
+  { name: "Mambalam", lat: 13.0387, lon: 80.2279 },
   { name: "Saidapet", lat: 13.0213, lon: 80.2232 },
-  { name: "Guindy", lat: 13.0094, lon: 80.2117 },
+  { name: "Guindy", lat: 13.0087, lon: 80.2131 },
   { name: "St. Thomas Mount", lat: 12.9938, lon: 80.1962 },
+  { name: "Tambaram", lat: 12.9257, lon: 80.1174 },
+  { name: "Chennai Beach", lat: 13.0917, lon: 80.2921 },
+  { name: "Chennai Central", lat: 13.0832, lon: 80.2755 },
+  { name: "Chennai Egmore", lat: 13.0777, lon: 80.2614 },
 ];
 
 // ─── Travel passes ───────────────────────────────────────────────────────────

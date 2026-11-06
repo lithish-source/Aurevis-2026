@@ -15,6 +15,7 @@ import { Splash } from "@/components/app/TriangleLogo";
 import { IncidentNotificationCenter } from "@/components/app/AlertsCenter";
 import { NotificationsOverlay } from "@/components/app/subscreens/NotificationsOverlay";
 import { ReportIncidentOverlay } from "@/components/app/subscreens/ReportIncidentOverlay";
+import { DataCatalogOverlay } from "@/components/app/subscreens/DataCatalogOverlay";
 import {
   QrScanOverlay,
   SafetyOverlay,
@@ -129,6 +130,8 @@ function OverlayRouter() {
       return <NotificationsOverlay />;
     case "reportIncident":
       return <ReportIncidentOverlay />;
+    case "datasets":
+      return <DataCatalogOverlay />;
     case "liveTracking":
       return (
         <ScreenOverlay title="Live Tracking" onClose={closeOverlay}>

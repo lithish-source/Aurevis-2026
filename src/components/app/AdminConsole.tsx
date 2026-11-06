@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { SocialMapLeaflet, type PulseMapEvent } from "@/components/app/social-maps";
 import { ALERT_EVENT_META, type Advisory } from "@/lib/alerts";
+import { CUMTA_DATASETS } from "@/lib/cumta-datasets";
 
 // ── types ────────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,10 @@ type IncidentReport = {
   verification: string | null;
   scenario: string | null;
   notificationsSent: number;
+  photo?: string | null;
+  mismatchReason?: string | null;
+  source?: string | null;
+  authorHandle?: string | null;
 };
 
 type ReplayStatus = {
@@ -153,6 +158,20 @@ function ReportCard({
             <span className={cn("rounded-full border px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider", VERIF_STYLE[report.verification ?? "unverified"] ?? VERIF_STYLE.unverified)}>
               {report.verification ?? "unverified"}
             </span>
+            {report.source === "reddit" && (
+              <span className="flex items-center gap-1 rounded-full border border-orange-500/40 bg-orange-500/15 px-2 py-0.5 text-[9.5px] font-extrabold text-orange-300">
+                <svg className="h-2.5 w-2.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.702z" />
+                </svg>
+                r/Chennai
+              </span>
+            )}
+            {report.source === "citizen_app" && (
+              <span className="flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/15 px-2 py-0.5 text-[9.5px] font-extrabold text-sky-300">
+                <span>📱</span>
+                Citizen App
+              </span>
+            )}
             {resolved ? (
               <span className="ml-auto flex items-center gap-1 text-[10px] font-bold text-emerald-400">● Resolved</span>
             ) : (
@@ -220,6 +239,41 @@ function ReportCard({
           <span className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[9.5px] text-slate-500">{report.scenario}</span>
         )}
       </div>
+
+      {/* ── commuter camera evidence ── */}
+      {report.photo && (
+        <div className="mt-3 flex items-start gap-3 rounded-xl border border-slate-700/60 bg-slate-900/60 p-2.5">
+          <img src={report.photo} alt="Attached incident evidence" className="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-slate-700" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Commuter Camera Attachment</p>
+            {report.verification === "flagged" ? (
+              <p className="mt-1 text-[11px] font-semibold leading-relaxed text-rose-300">
+                ⚠️ {report.mismatchReason || "Discrepancy: Photo does not corroborate reported incident scene."}
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] font-medium text-slate-400">Live camera capture attached to report.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── flagged discrepancy alert ── */}
+      {report.verification === "flagged" && (
+        <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-rose-200">
+          <div className="flex items-center gap-1.5 text-[11.5px] font-extrabold text-rose-300">
+            <span>⚠️</span>
+            <span>Flagged for Operations Review</span>
+          </div>
+          <p className="mt-1 text-[11px] leading-relaxed text-rose-300/90">
+            {report.mismatchReason
+              ? report.mismatchReason
+              : "AI detected an inconsistency or low corroboration. Severity was throttled to prevent false panic."}
+          </p>
+          <p className="mt-1.5 text-[9.5px] font-semibold text-rose-400/80">
+            Commuter notifications suppressed · Duty officer review required.
+          </p>
+        </div>
+      )}
 
       {/* ── commuter advisory ── */}
       {advisory && !resolved && (
@@ -310,14 +364,14 @@ function ReportCard({
 
 // ── stat card ────────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub, tone }: { label: string; value: string | number; sub?: string; tone?: "open" | "ok" | "info" }) {
+function StatCard({ label, value, sub, tone }: { label: string; value: string | number; sub?: string; tone?: "open" | "ok" | "info" | "flagged" }) {
   return (
     <div className="rounded-2xl border border-slate-700/50 bg-[#111827]/70 p-3.5 backdrop-blur">
       <p className="text-[9.5px] font-extrabold uppercase tracking-widest text-slate-500">{label}</p>
       <p
         className={cn(
           "mt-1 text-[26px] font-extrabold leading-none tracking-tight",
-          tone === "open" ? "text-orange-300" : tone === "ok" ? "text-emerald-300" : "text-slate-100",
+          tone === "open" ? "text-orange-300" : tone === "ok" ? "text-emerald-300" : tone === "flagged" ? "text-rose-400" : "text-slate-100",
         )}
       >
         {value}
@@ -331,8 +385,8 @@ function StatCard({ label, value, sub, tone }: { label: string; value: string | 
 
 export function AdminConsole() {
   const [reports, setReports] = useState<IncidentReport[]>([]);
-  const [counts, setCounts] = useState({ open: 0, resolved: 0, total: 0, notifications: 0, posts: 0 });
-  const [filter, setFilter] = useState<"open" | "resolved" | "all">("open");
+  const [counts, setCounts] = useState({ open: 0, resolved: 0, total: 0, notifications: 0, posts: 0, flagged: 0 });
+  const [filter, setFilter] = useState<"open" | "flagged" | "resolved" | "all">("open");
   const [replay, setReplay] = useState<ReplayStatus>({ ok: true, running: false });
   const [scenario, setScenario] = useState(SCENARIOS[0].id);
   const [speed, setSpeed] = useState(30);
@@ -340,6 +394,10 @@ export function AdminConsole() {
   const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
   const [popupToasts, setPopupToasts] = useState<IncidentReport[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showDatasets, setShowDatasets] = useState(false);
+  const [redditBusy, setRedditBusy] = useState(false);
+  const [redditFeedback, setRedditFeedback] = useState<string | null>(null);
+  const [redditCounts, setRedditCounts] = useState<{ total: number; mobility: number }>({ total: 0, mobility: 0 });
   const knownIds = useRef<Set<string>>(new Set());
   const firstLoad = useRef(true);
   const [clock, setClock] = useState("");
@@ -358,10 +416,10 @@ export function AdminConsole() {
         fetch("/api/reports?limit=150", { cache: "no-store" }),
         fetch("/api/social/feed?includeAll=1&limit=1", { cache: "no-store" }),
       ]);
-      const data = (await rR.json()) as { reports: IncidentReport[]; counts: { open: number; resolved: number; total: number; notifications: number } };
+      const data = (await rR.json()) as { reports: IncidentReport[]; counts: { open: number; resolved: number; total: number; notifications: number; flagged?: number } };
       const feed = (await rF.json()) as { counts: { total: number; filteredOut: number } };
       setReports(data.reports);
-      setCounts((c) => ({ ...data.counts, posts: feed.counts.total + feed.counts.filteredOut }));
+      setCounts((c) => ({ ...data.counts, flagged: data.counts.flagged ?? 0, posts: feed.counts.total + feed.counts.filteredOut }));
 
       // popup effect for newly arrived reports
       if (firstLoad.current) {
@@ -399,19 +457,71 @@ export function AdminConsole() {
     }
   }, []);
 
+  const fetchRedditStatus = useCallback(async () => {
+    try {
+      const r = await fetch("/api/social/reddit/poll", { cache: "no-store" });
+      const data = await r.json();
+      if (data.ok) {
+        setRedditCounts({
+          total: data.totalRedditPosts ?? 0,
+          mobility: data.mobilityRedditPosts ?? 0,
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const pollReddit = async () => {
+    setRedditBusy(true);
+    setRedditFeedback(null);
+    try {
+      const res = await fetch("/api/social/reddit/poll", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ limit: 10 }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setRedditCounts({
+          total: data.status?.totalRedditPosts ?? 0,
+          mobility: data.status?.mobilityRedditPosts ?? 0,
+        });
+        const createdCount = Array.isArray(data.outcomes)
+          ? data.outcomes.filter((o: { action: string }) => o.action === "created").length
+          : 0;
+        setRedditFeedback(
+          `Polled r/Chennai: ${data.inserted ?? 0} new posts ingested (${createdCount} incident report${createdCount === 1 ? "" : "s"} generated)`,
+        );
+        void fetchReports();
+      } else {
+        setRedditFeedback(`Error polling Reddit: ${data.error || "Unknown"}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setRedditFeedback(`Failed: ${msg}`);
+    } finally {
+      setRedditBusy(false);
+      setTimeout(() => setRedditFeedback(null), 8000);
+    }
+  };
+
   useEffect(() => {
     const t = setTimeout(() => {
       void fetchReports();
       void fetchReplay();
+      void fetchRedditStatus();
     }, 0);
     const t1 = setInterval(() => void fetchReports(), 6000);
     const t2 = setInterval(() => void fetchReplay(), 5000);
+    const t3 = setInterval(() => void fetchRedditStatus(), 12000);
     return () => {
       clearTimeout(t);
       clearInterval(t1);
       clearInterval(t2);
+      clearInterval(t3);
     };
-  }, [fetchReports, fetchReplay]);
+  }, [fetchReports, fetchReplay, fetchRedditStatus]);
 
   const startReplay = async () => {
     setBusy("replay");
@@ -464,7 +574,16 @@ export function AdminConsole() {
   );
 
   const visible = useMemo(
-    () => reports.filter((r) => (filter === "all" ? true : filter === "open" ? r.status === "open" : r.status === "resolved")),
+    () =>
+      reports.filter((r) =>
+        filter === "all"
+          ? true
+          : filter === "open"
+            ? r.status === "open"
+            : filter === "flagged"
+              ? r.verification === "flagged"
+              : r.status === "resolved",
+      ),
     [reports, filter],
   );
 
@@ -512,6 +631,23 @@ export function AdminConsole() {
             <p className="text-[10.5px] font-semibold text-slate-500">Chennai One · Incident Reports Console · Govt. of Tamil Nadu</p>
           </div>
           <div className="ml-auto flex items-center gap-2.5">
+            <button
+              onClick={() => setShowDatasets((s) => !s)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10.5px] font-extrabold uppercase tracking-wider transition",
+                showDatasets
+                  ? "border-blue-400 bg-blue-500/20 text-blue-200"
+                  : "border-slate-700 bg-slate-800/60 text-slate-300 hover:border-slate-500",
+              )}
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <ellipse cx="12" cy="5" rx="9" ry="3" />
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+              </svg>
+              <span>GTFS Datasets</span>
+              <span className="rounded bg-blue-500/30 px-1 py-0.2 text-[8px] text-blue-300 font-mono">3</span>
+            </button>
             <span className={cn("flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10.5px] font-extrabold uppercase tracking-wider", replay.running ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-slate-700 bg-slate-800/60 text-slate-400")}>
               <span className={cn("h-1.5 w-1.5 rounded-full", replay.running ? "animate-[softblink_1.4s_ease-in-out_infinite] bg-emerald-400" : "bg-slate-500")} aria-hidden />
               {replay.running ? `Stream live · ${replay.sent}/${replay.total}` : "Stream idle"}
@@ -520,6 +656,90 @@ export function AdminConsole() {
           </div>
         </div>
       </header>
+
+      {/* ── CUMTA Datasets Modal / Panel ── */}
+      {showDatasets && (
+        <div className="border-b border-slate-700/80 bg-[#0f172a]/95 p-4 sm:p-6 backdrop-blur shadow-2xl animate-[sheetin_0.25s_cubic-bezier(0.22,1,0.36,1)]">
+          <div className="mx-auto max-w-[1440px]">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[16px] font-extrabold text-white">CUMTA Open Transit Datasets</h2>
+                  <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-blue-300 border border-blue-400/30">
+                    GODL – India
+                  </span>
+                </div>
+                <p className="mt-1 text-[11.5px] text-slate-400">
+                  Standardized GTFS feeds and GeoJSON spatial network files verified against{" "}
+                  <a href="https://test.cumta.org/datasets" target="_blank" rel="noreferrer" className="text-blue-400 underline hover:text-blue-300">
+                    test.cumta.org/datasets ↗
+                  </a>
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDatasets(false)}
+                className="rounded-lg bg-slate-800 px-3 py-1.5 text-[11px] font-bold text-slate-300 hover:bg-slate-700"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              {CUMTA_DATASETS.map((ds) => (
+                <div key={ds.id} className="rounded-2xl border border-slate-700/80 bg-[#1e293b]/80 p-4 shadow-lg backdrop-blur">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="rounded-lg px-2 py-1 text-[11px] font-extrabold text-white"
+                      style={{ backgroundColor: ds.accent }}
+                    >
+                      {ds.shortName}
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      {ds.format} · {ds.size}
+                    </span>
+                  </div>
+                  <h3 className="mt-2.5 text-[14px] font-bold text-slate-100">{ds.agency}</h3>
+                  <p className="mt-1 text-[11px] leading-relaxed text-slate-300 line-clamp-2">{ds.description}</p>
+                  
+                  <div className="mt-3 flex items-center justify-between border-t border-slate-700/60 pt-2 text-[10.5px] text-slate-400">
+                    <span>{ds.stats.stopsOrStations.toLocaleString()} stops/stations</span>
+                    <span>{ds.stats.linesOrRoutes} lines/routes</span>
+                    <span className="font-semibold text-slate-300">{ds.stats.fareRange}</span>
+                  </div>
+
+                  <div className="mt-3">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Included files ({ds.files.length})</p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {ds.files.map((f) => (
+                        <span key={f} className="rounded bg-slate-800/80 px-1.5 py-0.5 font-mono text-[8.5px] text-slate-300 border border-slate-700/50">
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-2 border-t border-slate-700/60 flex items-center justify-between">
+                    <span className="text-[9.5px] text-slate-400">Updated {ds.lastUpdated}</span>
+                    <a
+                      href={ds.downloadUrl}
+                      download
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-extrabold text-white shadow transition hover:brightness-110 active:scale-95"
+                      style={{ backgroundColor: ds.accent }}
+                    >
+                      <span>Download ZIP</span>
+                      <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── report popups (the "each report should popup" moment) ── */}
       <div className="pointer-events-none fixed inset-x-0 top-[72px] z-50 mx-auto flex max-w-md flex-col gap-2 px-4">
@@ -552,8 +772,9 @@ export function AdminConsole() {
       {/* ── body ── */}
       <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 pb-10 pt-5 sm:px-6">
         {/* stats row */}
-        <section aria-label="Operations summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <section aria-label="Operations summary" className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <StatCard label="Open incidents" value={counts.open} sub="awaiting action" tone={counts.open > 0 ? "open" : "ok"} />
+          <StatCard label="Flagged / Review" value={counts.flagged} sub="mismatch / low trust" tone={counts.flagged > 0 ? "flagged" : "ok"} />
           <StatCard label="Resolved today" value={counts.resolved} sub="all-clear pushed" tone="ok" />
           <StatCard label="Posts processed" value={counts.posts} sub="social stream (NLP)" tone="info" />
           <StatCard label="Citizen alerts sent" value={counts.notifications} sub="geo-targeted" tone="info" />
@@ -566,7 +787,7 @@ export function AdminConsole() {
               <h2 className="text-[13px] font-extrabold uppercase tracking-widest text-slate-400">Incident reports</h2>
               <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-400">{visible.length}</span>
               <div className="ml-auto flex rounded-xl border border-slate-700/60 bg-slate-800/40 p-0.5">
-                {(["open", "resolved", "all"] as const).map((f) => (
+                {(["open", "flagged", "resolved", "all"] as const).map((f) => (
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
@@ -689,6 +910,77 @@ export function AdminConsole() {
                 </div>
               )}
               <p className="mt-2 text-[9.5px] leading-snug text-slate-600">Start resets this scenario&apos;s data — reports &amp; notifications rebuild live.</p>
+            </section>
+
+            {/* live reddit connector */}
+            <section aria-label="Reddit live connector" className="rounded-2xl border border-orange-500/25 bg-[#141923]/80 p-4 shadow-lg backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30 shadow-inner">
+                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24" aria-hidden>
+                      <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.702z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <h2 className="text-[13px] font-extrabold uppercase tracking-widest text-orange-200">Reddit Live Radar</h2>
+                      <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.2 text-[8.5px] font-extrabold text-emerald-300 border border-emerald-500/30">
+                        <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" /> LIVE
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400">Crowdsourced OSINT from <span className="font-semibold text-orange-300">r/Chennai</span> &amp; <span className="font-semibold text-orange-300">r/chennaicity</span></p>
+                  </div>
+                </div>
+                <a
+                  href="https://reddit.com/r/Chennai"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] font-bold text-orange-400/80 hover:text-orange-300 underline"
+                  title="Open r/Chennai in a new tab"
+                >
+                  ↗ Subreddit
+                </a>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-900/60 p-2.5 border border-slate-800">
+                <div className="text-center flex-1 border-r border-slate-800">
+                  <p className="text-[13px] font-extrabold text-slate-100">{redditCounts.total}</p>
+                  <p className="text-[9px] uppercase tracking-wider text-slate-400">Reddit posts</p>
+                </div>
+                <div className="text-center flex-1">
+                  <p className="text-[13px] font-extrabold text-orange-300">{redditCounts.mobility}</p>
+                  <p className="text-[9px] uppercase tracking-wider text-slate-400">Mobility alerts</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => void pollReddit()}
+                disabled={redditBusy}
+                className="mt-3 w-full rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-amber-500 px-4 py-2 text-[12px] font-extrabold text-white shadow-lg shadow-orange-950/40 transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {redditBusy ? (
+                  <>
+                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <circle cx="12" cy="12" r="10" strokeWidth="4" className="opacity-25" />
+                      <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" className="opacity-75" />
+                    </svg>
+                    <span>Polling r/Chennai…</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.702z" />
+                    </svg>
+                    <span>Fetch Live Reddit (r/Chennai)</span>
+                  </>
+                )}
+              </button>
+
+              {redditFeedback && (
+                <p className="mt-2 text-center text-[10.5px] font-semibold text-orange-200/90 animate-fade-in">
+                  {redditFeedback}
+                </p>
+              )}
             </section>
 
             {/* live map */}

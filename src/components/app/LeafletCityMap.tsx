@@ -62,9 +62,9 @@ export function LeafletCityMap({
   const fromApi = (category: "bus" | "metro" | "railway") =>
     stops?.filter((s) => (s as { category?: string }).category === category);
 
-  const busPins = fromApi("bus")?.length ? (fromApi("bus") as NearbyStopPin[]) : MAP_BUS_STOPS;
-  const metroPins = fromApi("metro")?.length ? (fromApi("metro") as NearbyStopPin[]) : MAP_METRO_STATIONS;
-  const railPins = fromApi("railway")?.length ? (fromApi("railway") as NearbyStopPin[]) : MAP_RAILWAY_STATIONS;
+  const busPins: NearbyStopPin[] = fromApi("bus")?.length ? (fromApi("bus") as NearbyStopPin[]) : (MAP_BUS_STOPS as NearbyStopPin[]);
+  const metroPins: NearbyStopPin[] = fromApi("metro")?.length ? (fromApi("metro") as NearbyStopPin[]) : (MAP_METRO_STATIONS as NearbyStopPin[]);
+  const railPins: NearbyStopPin[] = fromApi("railway")?.length ? (fromApi("railway") as NearbyStopPin[]) : (MAP_RAILWAY_STATIONS as NearbyStopPin[]);
 
   return (
     <div className={cn("relative h-full w-full", className)} aria-label="Neighbourhood map">

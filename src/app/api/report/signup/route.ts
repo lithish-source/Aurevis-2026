@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   const existing = await db.appUser.findUnique({ where: { deviceId } });
 
-  const result = await dualWrite<"appUser">(
+  const result = await dualWrite(
     "appUser",
     "app_users",
     {

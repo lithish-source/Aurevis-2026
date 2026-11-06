@@ -167,7 +167,8 @@ export async function ingestPosts(
           timeScale,
         })
       : [];
-    const { score, verification, breakdown } = computeTrust({
+    const hasMismatch = Boolean((raw.ai as { mismatch?: { detected?: boolean } } | undefined)?.mismatch?.detected);
+    const { score: rawScore, verification: rawVerif, breakdown } = computeTrust({
       source: raw.source ?? "other",
       authorMeta,
       text,
@@ -176,6 +177,9 @@ export async function ingestPosts(
       hasTimeRef: (cls?.timeRefs?.length ?? 0) > 0,
       neighbors: neighbors.map((n) => ({ authorHandle: n.authorHandle, source: n.source })),
     });
+
+    const score = hasMismatch ? Math.min(rawScore, 0.15) : rawScore;
+    const verification = hasMismatch ? "flagged" : rawVerif;
 
     const nlpMeta = JSON.stringify({
       engine: cls?.engine ?? "heuristic",

@@ -294,6 +294,10 @@ export function HomeScreen() {
     press.current = null;
     setDragging(false);
     if (p && !p.moved) {
+      if (p.onSearch) {
+        openOverlay("search");
+        return;
+      }
       tapAction?.();
       return;
     }
@@ -456,18 +460,24 @@ export function HomeScreen() {
           </div>
 
           {/* gradient search pill */}
-          <div
+          <button
+            type="button"
             data-search
-            role="button"
-            tabIndex={0}
             aria-label="Search destinations"
-            className="mt-1.5 flex h-11 w-full items-center justify-between rounded-full bg-[linear-gradient(90deg,#D618E8_0%,#F0143C_48%,#F25C05_100%)] px-5 text-white shadow-[0_6px_18px_rgba(240,20,60,0.35)] transition active:scale-[0.99]"
+            onClick={(e) => {
+              e.stopPropagation();
+              openOverlay("search");
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+            className="cursor-pointer mt-1.5 flex h-11 w-full items-center justify-between rounded-full bg-[linear-gradient(90deg,#D618E8_0%,#F0143C_48%,#F25C05_100%)] px-5 text-white shadow-[0_6px_18px_rgba(240,20,60,0.35)] transition hover:brightness-105 active:scale-[0.98]"
           >
             <span className="truncate text-[15px] font-semibold">Search “Bus, Metro, Train”</span>
             <svg viewBox="0 0 24 24" className="h-[22px] w-[22px] shrink-0" fill="currentColor" aria-hidden>
               <path d="M10 3a7 7 0 1 0 4.24 12.56l4.1 4.1a1.2 1.2 0 0 0 1.7-1.7l-4.1-4.1A7 7 0 0 0 10 3zm0 2.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2z" />
             </svg>
-          </div>
+          </button>
         </div>
 
         {/* scrollable content — the mode carousel peeks out in map mode */}

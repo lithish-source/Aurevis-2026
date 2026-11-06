@@ -19,7 +19,8 @@ export type Overlay =
   | "liveTracking" // full-screen live bus / metro tracking
   | "services" // GCC city services browser
   | "notifications" // incident alerts near the user's area
-  | "reportIncident"; // citizen "see something? report it" flow
+  | "reportIncident" // citizen "see something? report it" flow
+  | "datasets"; // CUMTA GTFS transit data catalog
 
 export type PlannerMode = "bus" | "train" | "metro" | "search";
 

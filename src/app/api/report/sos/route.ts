@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "invalid JSON" }, { status: 400 });
   }
 
-  const result = await dualWrite<"sosEvent">("sosEvent", "sos_events", {
+  const result = await dualWrite("sosEvent", "sos_events", {
     kind: body.kind === "sos_cancelled" ? "sos_cancelled" : "sos_pressed",
     lat: Number.isFinite(body.lat) ? Number(body.lat) : null,
     lon: Number.isFinite(body.lon) ? Number(body.lon) : null,

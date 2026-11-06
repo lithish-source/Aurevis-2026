@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "passId and name are required" }, { status: 400 });
   }
 
-  const result = await dualWrite<"passPurchase">("passPurchase", "pass_purchases", {
+  const result = await dualWrite("passPurchase", "pass_purchases", {
     passId: body.passId,
     name: body.name,
     price: Number(body.price) || 0,

@@ -445,17 +445,53 @@ export function ExploreOverlay() {
 type SearchResult = { type: "station" | "bus" | "place"; title: string; sub: string };
 
 const ALL_RESULTS: SearchResult[] = [
-  { type: "station", title: "Meenambakkam", sub: "Metro · Blue Line" },
-  { type: "station", title: "Alandur", sub: "Metro · Interchange" },
-  { type: "station", title: "Central Metro", sub: "Metro · Interchange" },
-  { type: "station", title: "Egmore", sub: "Suburban rail + Metro Green" },
-  { type: "station", title: "Guindy", sub: "Metro · Bus terminus" },
+  // Metro Stations
+  { type: "station", title: "Central Metro", sub: "Metro · Interchange (Blue & Green)" },
+  { type: "station", title: "Alandur", sub: "Metro · Interchange (Blue & Green)" },
+  { type: "station", title: "Meenambakkam", sub: "Metro · Blue Line (near Airport)" },
+  { type: "station", title: "Chennai Airport", sub: "Metro · Blue Line Terminus" },
+  { type: "station", title: "Guindy", sub: "Metro Blue + Suburban + MTC Terminus" },
+  { type: "station", title: "Egmore", sub: "Suburban Rail + Metro Green Line" },
+  { type: "station", title: "Koyambedu / CMBT", sub: "Metro Green Line + Intercity Bus Stand" },
+  { type: "station", title: "Vadapalani", sub: "Metro Green Line (Forum Vijaya Mall)" },
+  { type: "station", title: "Thirumangalam", sub: "Metro Green Line (VR Mall)" },
+  { type: "station", title: "Anna Nagar Tower", sub: "Metro · Green Line" },
+  { type: "station", title: "Thousand Lights", sub: "Metro Blue Line · Anna Salai" },
+  { type: "station", title: "Government Estate", sub: "Metro Blue Line · Omandurar" },
+  { type: "station", title: "LIC", sub: "Metro Blue Line · Mount Road" },
+  { type: "station", title: "Wimco Nagar", sub: "Metro Blue Line · North Chennai" },
+  { type: "station", title: "St. Thomas Mount", sub: "Metro Green + MRTS + Suburban" },
+
+  // Suburban & MRTS Stations
+  { type: "station", title: "Tambaram", sub: "Southern Railway Suburban Terminus (TBM)" },
+  { type: "station", title: "Tambaram Sanatorium", sub: "Suburban Rail · MEPZ (TBMS)" },
+  { type: "station", title: "Chromepet", sub: "Suburban Rail · GST Road (CMP)" },
+  { type: "station", title: "Pallavaram", sub: "Suburban Rail · GST Road (PV)" },
+  { type: "station", title: "Mambalam", sub: "Suburban Rail · T. Nagar (MBM)" },
+  { type: "station", title: "Chennai Beach", sub: "Suburban Rail + MRTS Hub (MSB)" },
+  { type: "station", title: "Velachery MRTS", sub: "MRTS Terminus · 100 Ft Bypass Rd (VLCY)" },
+  { type: "station", title: "Perungudi", sub: "MRTS · OMR IT Expressway (PRGD)" },
+  { type: "station", title: "Thiruvanmiyur", sub: "MRTS + MTC Bus Terminus (TYMR)" },
+
+  // MTC Bus Routes
   { type: "bus", title: "578 · Sriperumbudur Bus", sub: "Via Chennai - Bengaluru Hwy" },
-  { type: "bus", title: "21G · GST Road Express", sub: "Via GST Road" },
-  { type: "bus", title: "1A · Marina Beach Rider", sub: "Via Kamarajar Salai" },
-  { type: "place", title: "Marina Beach", sub: "Beach · 3.9 km" },
+  { type: "bus", title: "21G · GST Road Express", sub: "Broadway ↔ Tambaram via GST" },
+  { type: "bus", title: "1A · Marina Beach Rider", sub: "Thiruvanmiyur ↔ Central via Kamarajar" },
+  { type: "bus", title: "570 · OMR IT Expressway", sub: "CMBT ↔ Kelambakkam via Sholinganallur" },
+  { type: "bus", title: "102 · OMR Express", sub: "Broadway ↔ Kelambakkam" },
+  { type: "bus", title: "70 · 100 Feet Road", sub: "Avadi ↔ Tambaram via Vadapalani" },
+  { type: "bus", title: "54 · Poonamallee Express", sub: "Broadway ↔ Poonamallee via Porur" },
+
+  // Key Places & Hubs
+  { type: "place", title: "Marina Beach", sub: "Beach · Kamarajar Salai · 3.9 km" },
+  { type: "place", title: "Besant Nagar Beach (Elliot's)", sub: "Beach & Promenade · 6.8 km" },
+  { type: "place", title: "T. Nagar Ranganathan Street", sub: "Shopping & Commercial Hub · 4.2 km" },
+  { type: "place", title: "Kilambakkam (KCBT)", sub: "Kalaignar Centenary Bus Terminus · GST Road" },
+  { type: "place", title: "Porur Junction", sub: "Mount-Poonamallee Road Hub" },
+  { type: "place", title: "Kathipara Junction", sub: "Grand Interchange · Guindy" },
+  { type: "place", title: "Phoenix Marketcity", sub: "Mall & Entertainment · Velachery" },
   { type: "place", title: "Fort St. George", sub: "Heritage · 3.2 km" },
-  { type: "place", title: "Government Museum", sub: "Museum · 2.4 km" },
+  { type: "place", title: "Government Museum", sub: "Museum · Egmore · 2.4 km" },
 ];
 
 function ResultIcon({ type }: { type: SearchResult["type"] }) {
@@ -479,38 +515,76 @@ function ResultIcon({ type }: { type: SearchResult["type"] }) {
 }
 
 export function SearchOverlay() {
-  const { closeOverlay, openOverlay } = useApp();
+  const { closeOverlay, openOverlay, setPlannerMode } = useApp();
   const [q, setQ] = useState("");
   const results = ALL_RESULTS.filter(
     (r) => r.title.toLowerCase().includes(q.toLowerCase()) || r.sub.toLowerCase().includes(q.toLowerCase())
   );
 
+  const handleSelect = (r: SearchResult) => {
+    if (r.type === "place") {
+      openOverlay("explore");
+    } else if (r.type === "bus") {
+      setPlannerMode("bus");
+      openOverlay("planner");
+    } else {
+      setPlannerMode("metro");
+      openOverlay("planner");
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (results.length > 0) {
+      handleSelect(results[0]);
+    }
+  };
+
   return (
-    <OverlayShell title="Search" onClose={closeOverlay} headerClass="bg-white text-slate-900">
+    <OverlayShell title="Search Transit & Places" onClose={closeOverlay} headerClass="bg-white text-slate-900">
       <div className="px-4 pb-8 pt-3">
-        <div className="relative">
-          <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-400" fill="currentColor" aria-hidden>
-            <path d="M10 3a7 7 0 1 0 4.24 12.56l4.1 4.1a1.2 1.2 0 0 0 1.7-1.7l-4.1-4.1A7 7 0 0 0 10 3zm0 2.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2z" />
-          </svg>
-          <input
-            autoFocus
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Stations, buses, places…"
-            aria-label="Search"
-            className="w-full rounded-full border border-slate-200 bg-white py-3 pl-11 pr-4 text-[13.5px] outline-none placeholder:text-slate-400 focus:border-[#E53935]/50 focus:ring-2 focus:ring-[#E53935]/15"
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-400" fill="currentColor" aria-hidden>
+              <path d="M10 3a7 7 0 1 0 4.24 12.56l4.1 4.1a1.2 1.2 0 0 0 1.7-1.7l-4.1-4.1A7 7 0 0 0 10 3zm0 2.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2z" />
+            </svg>
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search stations, buses, landmarks…"
+              aria-label="Search"
+              className="w-full rounded-full border border-slate-200 bg-white py-3 pl-11 pr-10 text-[13.5px] outline-none placeholder:text-slate-400 focus:border-[#E53935]/50 focus:ring-2 focus:ring-[#E53935]/15"
+            />
+            {q.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setQ("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:text-slate-600"
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            className="flex h-11 items-center justify-center rounded-full bg-[linear-gradient(90deg,#D618E8_0%,#F0143C_48%,#F25C05_100%)] px-4 text-[13px] font-bold text-white shadow-md transition hover:brightness-105 active:scale-95"
+            aria-label="Submit search"
+          >
+            Search
+          </button>
+        </form>
 
         {q.length === 0 && (
           <>
-            <p className="mb-2.5 mt-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">Recent</p>
+            <p className="mb-2.5 mt-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">Popular Destinations</p>
             <div className="flex flex-wrap gap-2">
-              {["Meenambakkam", "Route 21G", "Marina Beach", "Central Metro", "Alandur"].map((r) => (
+              {["Central Metro", "Tambaram", "Velachery MRTS", "Airport", "Route 21G", "Marina Beach", "Alandur"].map((r) => (
                 <button
                   key={r}
                   onClick={() => setQ(r)}
-                  className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-slate-600 transition active:scale-95"
+                  className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-slate-600 transition hover:border-slate-300 active:scale-95"
                 >
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
                     <circle cx="12" cy="12" r="9" />
@@ -527,10 +601,7 @@ export function SearchOverlay() {
           {results.map((r) => (
             <button
               key={r.title}
-              onClick={() => {
-                if (r.type === "place") openOverlay("explore");
-                else openOverlay("planner");
-              }}
+              onClick={() => handleSelect(r)}
               className="flex items-center gap-3 border-b border-slate-100 py-3.5 text-left transition active:bg-slate-50"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">

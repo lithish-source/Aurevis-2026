@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "name is required" }, { status: 400 });
   }
 
-  const result = await dualWrite<"analyticsEvent">("analyticsEvent", "analytics_events", {
+  const result = await dualWrite("analyticsEvent", "analytics_events", {
     name: body.name.trim().slice(0, 80),
     payload: JSON.stringify(body.payload ?? {}),
     userId: body.userId || null,

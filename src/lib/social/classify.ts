@@ -75,7 +75,7 @@ const TYPE_KEYWORDS: Array<[EventType, RegExp]> = [
   ["accident", /accident|crash|collid|rammed|hit (a|an|the|my)|overturn|topple|lorry|ambulance|casualt|injur|bleeding/i],
   ["protest", /protest|strike|bandh|road roko|blockade|dharna|rally|morcha/i],
   ["hazard", /fire|smoke|gas leak|electrocut|live wire|open (manhole|drain)|tree branch hang|short circuit/i],
-  ["transit_disruption", /(metro|train|mtc|bus).{0,40}(delay|held|hold|cancel|suspend|stuck|breakdown|not (moving|running)|divert|short terminat|pack|crowd)|(delay|held|cancel|suspend|stuck|breakdown|divert).{0,40}(metro|train|mtc|bus)/i],
+  ["transit_disruption", /(metro|train|mtc|bus).{0,40}(delay|halt|held|hold|cancel|suspend|stuck|breakdown|glitch|fault|disrupt|not (moving|running)|divert|short terminat|pack|crowd)|(delay|halt|held|cancel|suspend|stuck|breakdown|glitch|fault|disrupt|divert).{0,40}(metro|train|mtc|bus)/i],
   ["road_closure", /(road|route|stretch|bridge|flyover).{0,30}(closed|closure|blocked|barricad|shut|divert)|diversion|no entry/i],
   ["infrastructure", /pothole|tree (fell|uprooted)|signal (not|down|failed)|streetlight|power cut|power failure|pipe burst|sewage|crack(ed)? (road|bridge)|water supply/i],
   ["congestion", /traffic|jam|crawl|bumper to bumper|stuck (in|at)|heavy (traffic|jam)|gridlock|slow[- ]moving|long (queue|line)|snarl|standstill|crawling|standing still|no movement|not moving/i],
