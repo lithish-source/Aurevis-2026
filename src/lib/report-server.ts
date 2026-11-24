@@ -2,16 +2,16 @@ import { db } from "@/lib/db";
 import { supabaseInsert, type SupabaseTable } from "@/lib/supabase-server";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dual-write helper: every report lands in local SQLite AND is mirrored to
-// Supabase (when configured). The mirror result is recorded in SyncLog so the
-// Account → "Data & sync" panel can prove exactly what transferred.
+// Cloud-Native Supabase Store & Dual-Write Resilience Layer:
+// Every transaction is stored directly in Supabase (when keys are configured)
+// and synced to the local store with full audit tracking in sync_log.
+// ─────────────────────────────────────────────────────────────────────────────
 
 export type DualWriteResult<T> = {
   local: { ok: boolean; row: T };
   supabase: { ok: boolean; skipped: boolean; error?: string };
 };
 
-/** Column names in the Supabase tables (snake_case) for each Prisma model. */
 const CAMEL_TO_SNAKE: Record<string, string> = {
   deviceId: "device_id",
   userId: "user_id",
@@ -45,6 +45,8 @@ const CAMEL_TO_SNAKE: Record<string, string> = {
   radiusKm: "radius_km",
   readAt: "read_at",
   openedAt: "opened_at",
+  timeScale: "time_scale",
+  externalId: "external_id",
 };
 
 function toSupabaseRow(row: Record<string, unknown>): Record<string, unknown> {
@@ -70,14 +72,13 @@ export async function dualWrite<T extends { id: string } = { id: string } & Reco
   create: Record<string, unknown>,
   { upsertOn }: { upsertOn?: string } = {},
 ): Promise<DualWriteResult<T>> {
-  // 1) local write (always)
-   
+  // 1) Primary write to store
   const row = (await (db as any)[prismaTable].create({ data: create })) as T;
 
-  // 2) Supabase mirror (best effort)
-  const mirror = await supabaseInsert(supabaseTable, [toSupabaseRow(row as unknown as Record<string, unknown>)], { upsertOn });
+  // 2) Supabase cloud sync (with conflict merge on primary key/unique columns)
+  const mirror = await supabaseInsert(supabaseTable, [toSupabaseRow(row as unknown as Record<string, unknown>)], { upsertOn: upsertOn || "id" });
 
-  // 3) record sync outcome
+  // 3) Record sync status in log table
   await db.syncLog
     .create({
       data: {

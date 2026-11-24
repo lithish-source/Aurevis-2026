@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useApp } from "@/lib/app-store";
 import { BottomNav } from "@/components/app/BottomNav";
 import { HomeScreen } from "@/components/app/screens/HomeScreen";
@@ -27,12 +28,24 @@ import {
 } from "@/components/app/subscreens/Overlays";
 
 function StatusClock() {
+  const [time, setTime] = useState("");
+  useEffect(() => {
+    const fmt = () =>
+      new Date().toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    setTime(fmt());
+    const t = setInterval(() => setTime(fmt()), 30_000);
+    return () => clearInterval(t);
+  }, []);
   return (
     <span className="flex items-center gap-1 text-[11px] font-semibold">
       <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden>
         <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.7.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.5.6 3.7.1.4 0 .8-.2 1l-2.3 2.1z" />
       </svg>
-      <span suppressHydrationWarning>4:35</span>
+      <span suppressHydrationWarning>{time}</span>
     </span>
   );
 }
@@ -163,7 +176,29 @@ export function ChennaiOneApp() {
   }, []);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-200 via-slate-100 to-rose-100 p-4 sm:p-8">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-200 via-slate-100 to-rose-100 p-4 sm:p-8">
+      {/* portal nav */}
+      <div className="mb-4 flex items-center gap-3">
+        <Link
+          href="/"
+          className="flex items-center gap-1.5 rounded-full border border-slate-300/60 bg-white/80 px-3 py-1.5 text-[11px] font-bold text-slate-500 shadow-sm backdrop-blur transition hover:bg-white hover:text-slate-700"
+        >
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          Portal
+        </Link>
+        <span className="text-[11px] font-semibold text-slate-400">📱 Citizen App</span>
+        <Link
+          href="/admin"
+          className="ml-auto flex items-center gap-1 rounded-full border border-slate-300/60 bg-white/80 px-3 py-1.5 text-[11px] font-bold text-slate-500 shadow-sm backdrop-blur transition hover:bg-white hover:text-indigo-600"
+        >
+          🛡️ Admin
+          <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </Link>
+      </div>
       {/* phone frame */}
       <div className="relative w-full max-w-[400px]">
         <div className="relative h-[844px] max-h-[calc(100vh-4rem)] overflow-hidden rounded-[44px] border-[10px] border-[#1B1F26] bg-[#F1F0F4] shadow-2xl shadow-slate-900/30">

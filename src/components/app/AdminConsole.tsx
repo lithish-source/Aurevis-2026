@@ -13,10 +13,12 @@
 // Companion of the commuter Chennai One phone app.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { SocialMapLeaflet, type PulseMapEvent } from "@/components/app/social-maps";
 import { ALERT_EVENT_META, type Advisory } from "@/lib/alerts";
 import { CUMTA_DATASETS } from "@/lib/cumta-datasets";
+import { TriangleLogo } from "@/components/app/TriangleLogo";
 
 // ── types ────────────────────────────────────────────────────────────────────
 
@@ -445,7 +447,7 @@ export function AdminConsole() {
       if (fresh.length > 0) {
         setFlashIds((s) => new Set([...s, ...fresh.map((f) => f.id)]));
         setPopupToasts((t) => [...fresh.slice(0, 3), ...t].slice(0, 3));
-        setTimeout(() => setPopupToasts((t) => t.slice(0, Math.max(0, t.length - fresh.length))), 8000);
+        setTimeout(() => setPopupToasts([]), 8000);
         setTimeout(
           () =>
             setFlashIds((s) => {
@@ -635,19 +637,28 @@ export function AdminConsole() {
       {/* ── command header ── */}
       <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#0B0F19]/85 backdrop-blur">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1A56DB] to-[#232E6B] shadow-lg shadow-blue-900/40" aria-hidden>
-            <svg viewBox="0 0 96 96" className="h-7 w-7">
-              <path d="M48 14 84 78 H12 Z" fill="#fff" opacity="0.95" />
-              <circle cx="48" cy="26" r="5" fill="#1A56DB" />
-              <circle cx="26" cy="66" r="5" fill="#1A56DB" />
-              <circle cx="70" cy="66" r="5" fill="#1A56DB" />
-            </svg>
-          </span>
+          <TriangleLogo className="h-10 w-10 shrink-0 drop-shadow-md" />
           <div className="min-w-0">
             <h1 className="text-[15px] font-extrabold leading-tight tracking-tight">CUMTA Transit Operations Command</h1>
             <p className="text-[10.5px] font-semibold text-slate-500">Chennai One · Incident Reports Console · Govt. of Tamil Nadu</p>
           </div>
           <div className="ml-auto flex items-center gap-2.5">
+            {/* portal navigation */}
+            <Link
+              href="/"
+              className="hidden items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-[10.5px] font-bold text-slate-400 transition hover:border-slate-500 hover:text-slate-200 sm:flex"
+            >
+              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+              Portal
+            </Link>
+            <Link
+              href="/app"
+              className="hidden items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-[10.5px] font-bold text-slate-400 transition hover:border-pink-500/50 hover:text-pink-300 sm:flex"
+            >
+              📱 Citizen App
+            </Link>
             <button
               onClick={() => setShowSpatialModal(true)}
               className="flex items-center gap-1.5 rounded-full border border-blue-500/40 bg-blue-600/20 px-3 py-1.5 text-[10.5px] font-extrabold uppercase tracking-wider text-blue-200 transition hover:bg-blue-600/30 shadow-sm shadow-blue-900/30"

@@ -1,72 +1,101 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Chennai One — root view switcher.
+// Chennai One — Portal Landing Page
 //
-//   📱 Citizen app  — the Chennai One phone (commuter side: tickets, live
-//                     tracking, City Pulse, incident ALERTS near their area)
-//   🛡 Admin console — CUMTA Transit Operations Command (incident reports
-//                     pop up live; duty officers resolve them)
+// Presents a clean "choose your portal" screen:
+//   📱 Citizen App   → /app   (commuter side)
+//   🛡  Admin Console → /admin (CUMTA duty-officer console)
 //
-// The two halves of one product: reports detected from the social data
-// stream surface in the console, and their advisories reach the citizens
-// nearby on the phone.
+// Each portal lives at its own URL, so both can be opened side-by-side in
+// separate tabs and bookmarked independently.
+// ─────────────────────────────────────────────────────────────────────────────
 
-import { useEffect, useState } from "react";
-import { ChennaiOneApp } from "@/components/app/ChennaiOneApp";
-import { AdminConsole } from "@/components/app/AdminConsole";
+import Link from "next/link";
+import { TriangleLogo } from "@/components/app/TriangleLogo";
 
-type View = "app" | "admin";
-
-function ViewSwitch({ view, setView }: { view: View; setView: (v: View) => void }) {
+export default function LandingPage() {
   return (
-    <div className="fixed left-1/2 top-4 z-[100] flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-[#0B0F19]/90 p-1 shadow-2xl shadow-black/40 backdrop-blur">
-      <span className="ml-2 hidden h-6 w-6 items-center justify-center sm:flex" aria-hidden>
-        <svg viewBox="0 0 96 96" className="h-5 w-5">
-          <path d="M48 14 84 78 H12 Z" fill="#fff" opacity="0.9" />
-          <circle cx="48" cy="26" r="4" fill="#1A56DB" />
-          <circle cx="26" cy="66" r="4" fill="#1A56DB" />
-          <circle cx="70" cy="66" r="4" fill="#1A56DB" />
-        </svg>
-      </span>
-      <button
-        onClick={() => setView("app")}
-        aria-pressed={view === "app"}
-        className={`rounded-full px-4 py-1.5 text-[12px] font-extrabold tracking-wide transition ${
-          view === "app" ? "bg-white text-[#0B0F19] shadow" : "text-slate-400 hover:text-white"
-        }`}
-      >
-        📱 Citizen App
-      </button>
-      <button
-        onClick={() => setView("admin")}
-        aria-pressed={view === "admin"}
-        className={`rounded-full px-4 py-1.5 text-[12px] font-extrabold tracking-wide transition ${
-          view === "admin" ? "bg-white text-[#0B0F19] shadow" : "text-slate-400 hover:text-white"
-        }`}
-      >
-        🛡 Admin Console
-      </button>
+    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(130%_120%_at_20%_0%,#101a33_0%,#0B0F19_55%,#070A12_100%)] px-4">
+      <div className="w-full max-w-sm">
+        {/* brand header */}
+        <div className="mb-10 flex flex-col items-center gap-3 text-center">
+          <TriangleLogo className="h-16 w-16 drop-shadow-xl" />
+          <h1 className="text-[26px] font-extrabold tracking-tight text-white">Chennai One</h1>
+          <p className="text-[13px] font-medium leading-relaxed text-slate-400">
+            CUMTA citizen transit app &amp; operations command.
+            <br />
+            Choose your portal to continue.
+          </p>
+        </div>
+
+        {/* portal cards */}
+        <div className="flex flex-col gap-4">
+          {/* Citizen App card */}
+          <Link
+            href="/app"
+            className="group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-slate-700/60 bg-[#111827]/80 p-5 shadow-lg shadow-black/30 backdrop-blur transition hover:border-slate-500/60 hover:bg-[#1a2540]/80 active:scale-[0.98]"
+          >
+            {/* gradient accent bar */}
+            <span className="absolute inset-y-0 left-0 w-1 rounded-l-2xl bg-gradient-to-b from-[#D618E8] via-[#F0143C] to-[#F25C05]" />
+            <span className="ml-2 flex h-13 w-13 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#D618E8]/20 to-[#F25C05]/20 text-3xl">
+              📱
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[16px] font-extrabold text-white">Citizen App</p>
+              <p className="mt-0.5 text-[12px] leading-snug text-slate-400">
+                Tickets, live bus tracking, journey planner, City Pulse &amp; incident alerts
+              </p>
+            </div>
+            <svg
+              viewBox="0 0 24 24"
+              className="h-5 w-5 shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-slate-300"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </Link>
+
+          {/* Admin Console card */}
+          <Link
+            href="/admin"
+            className="group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-slate-700/60 bg-[#111827]/80 p-5 shadow-lg shadow-black/30 backdrop-blur transition hover:border-indigo-500/40 hover:bg-[#111f38]/80 active:scale-[0.98]"
+          >
+            {/* gradient accent bar */}
+            <span className="absolute inset-y-0 left-0 w-1 rounded-l-2xl bg-gradient-to-b from-[#1A56DB] to-[#4F46E5]" />
+            <span className="ml-2 flex h-13 w-13 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1A56DB]/20 to-[#4F46E5]/20 text-3xl">
+              🛡️
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[16px] font-extrabold text-white">Admin Console</p>
+              <p className="mt-0.5 text-[12px] leading-snug text-slate-400">
+                CUMTA Transit Operations Command — incident reports, social stream &amp; spatial visualiser
+              </p>
+            </div>
+            <svg
+              viewBox="0 0 24 24"
+              className="h-5 w-5 shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-slate-300"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </Link>
+        </div>
+
+        <p className="mt-8 text-center text-[10px] font-semibold text-slate-600">
+          Chennai One · CUMTA · Government of Tamil Nadu
+        </p>
+      </div>
     </div>
-  );
-}
-
-export default function Home() {
-  // restore the saved view without a render-cascading effect
-  const [view, setView] = useState<View>(() => {
-    if (typeof window === "undefined") return "app";
-    const saved = window.localStorage.getItem("chennai-one:view");
-    return saved === "admin" ? "admin" : "app";
-  });
-
-  useEffect(() => {
-    window.localStorage.setItem("chennai-one:view", view);
-  }, [view]);
-
-  return (
-    <>
-      <ViewSwitch view={view} setView={setView} />
-      {view === "admin" ? <AdminConsole /> : <ChennaiOneApp />}
-    </>
   );
 }

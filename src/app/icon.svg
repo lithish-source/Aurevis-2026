@@ -1,22 +1,25 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Chennai One · triangle route mark -->
-<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Chennai One logo">
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Chennai One logo">
   <defs>
-    <linearGradient id="c1tile" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#232E6B"/>
-      <stop offset="0.55" stop-color="#1A56DB"/>
-      <stop offset="1" stop-color="#1A6FE0"/>
+    <linearGradient id="c1Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ED2A2B" />
+      <stop offset="35%" stop-color="#E3153A" />
+      <stop offset="70%" stop-color="#E61563" />
+      <stop offset="100%" stop-color="#D154D0" />
     </linearGradient>
   </defs>
-  <rect width="96" height="96" rx="26" fill="url(#c1tile)"/>
-  <!-- triangle route -->
-  <path d="M48 26 L73.5 68.5 L22.5 68.5 Z" fill="none" stroke="#FFFFFF" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
-  <!-- vertex station dots -->
-  <circle cx="48" cy="26" r="7" fill="#FFFFFF"/>
-  <circle cx="22.5" cy="68.5" r="7" fill="#FFFFFF"/>
-  <circle cx="73.5" cy="68.5" r="7" fill="#FFFFFF"/>
-  <!-- live "you are here" dot at the apex -->
-  <circle cx="48" cy="26" r="3.2" fill="#1A56DB"/>
-  <!-- road tick under the triangle -->
-  <path d="M32 80 H64" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 8"/>
+  <rect width="1024" height="1024" rx="224" fill="url(#c1Grad)" />
+  <g transform="translate(0, 1024) scale(0.1, -0.1)" fill="#FFFFFF">
+    <path d="Mm5405 3380 c580 -34 1091 -167 1572 -409 748 -376 1328 -1005 1622
+-1759 268 -688 299 -1424 91 -2136 -209 -715 -639 -1333 -1233 -1773 -107 -79
+-364 -240 -371 -232 -7 7 -236 469 -296 596 l-58 121 101 62 c382 234 702 586
+906 997 122 244 209 526 248 798 25 178 25 551 0 715 -91 585 -403 1128 -868
+1507 -699 569 -1716 798 -2674 601 -871 -178 -1640 -729 -1983 -1420 -29 -58
+-74 -172 -101 -254 -263 -800 -119 -1657 393 -2338 362 -481 882 -805 1526
+-950 128 -29 417 -73 425 -64 3 2 4 612 3 1355 l-3 1350 -350 -149 c-192 -81
+-359 -151 -370 -154 -18 -4 -33 29 -152 343 -73 191 -129 350 -125 354 4 4
+309 163 679 353 l672 346 253 -2 253 -3 3 -2294 c1 -1262 -2 -2299 -6 -2303
+-19 -19 -441 -31 -669 -19 -894 45 -1596 287 -2203 757 -207 160 -476 443
+-640 673 -330 464 -549 1039 -615 1616 -19 168 -19 502 0 670 86 744 410 1447
+913 1976 530 559 1238 908 2082 1028 316 45 659 59 975 41z" />
+  </g>
 </svg>
